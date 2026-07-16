@@ -60,7 +60,7 @@ export const getEmployeeById = async (req, res) => {
         const targetId = parseInt(req.params.id);
         const { id: currentUserId, role: currentUserRole } = req.user;
 
-        // RBAC: Admin, HR, Manager can view anyone. Employee can only view own profile.
+       
         if (currentUserRole !== "Admin" && currentUserRole !== "HR" && currentUserRole !== "Manager" && currentUserId !== targetId) {
             return res.status(403).json({
                 success: false,
@@ -103,7 +103,7 @@ export const updateEmployee = async (req, res) => {
         const { id: currentUserId, role: currentUserRole } = req.user;
         const { name, email, password, role_id } = req.body;
 
-        // RBAC: Admin and HR can update anyone. Employee can only update own profile.
+        
         if (currentUserRole !== "Admin" && currentUserRole !== "HR" && currentUserId !== targetId) {
             return res.status(403).json({
                 success: false,
