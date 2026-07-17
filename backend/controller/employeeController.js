@@ -2,22 +2,46 @@ import db from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
 export const addEmployee = async (req, res) => {
-
     try {
-        const { name, email, password, role_id } = req.body;
+        const { name, email, password, role_id, department_id } = req.body;
+
+        // Check required fields
         if (!name || !email || !password || !role_id) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are reqired..!"
-            })
-
+                message: "All fields (name, email, password, role_id) are required."
+            });
         }
+
+        // Validate role_id exists
+        const [roleCheck] = await db.query("SELECT * FROM roles WHERE id = ?", [role_id]);
+        if (roleCheck.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid role_id. Role does not exist."
+            });
+        }
+
+        // Validate department_id exists (if provided)
+        if (department_id) {
+            const [deptCheck] = await db.query("SELECT * FROM departments WHERE id = ?", [department_id]);
+            if (deptCheck.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid department_id. Department does not exist."
+                });
+            }
+        }
+
+        // Hash the password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-
-        await db.query('INSERT INTO employees (name, email, password,  role_id) VALUES (?, ?, ?, ?)',
-            [name, email, hashedPassword,  role_id]);
+        // Call the stored procedure SP_AddEmployee
+        await db.query(
+            'CALL SP_AddEmployee(?, ?, ?, ?, ?)',
+            [name, email, hashedPassword, role_id, department_id || null]
+        );
 
         res.status(201).json({
             success: true,
@@ -25,10 +49,10 @@ export const addEmployee = async (req, res) => {
         });
         
     } catch (error) {
-        console.log("Error ", error.message)
+        console.error("Error in addEmployee:", error.message);
         res.status(500).json({
             success: false,
-            message: "Database Error" + error.message
+            message: "Database Error: " + error.message
         });
     }
 };
@@ -37,9 +61,11 @@ export const addEmployee = async (req, res) => {
 export const getAllEmployees = async (req, res) => {
     try {
         const [rows] = await db.query(
-            `SELECT e.id, e.name, e.email, e.role_id, r.role_name 
+            `SELECT e.id, e.name, e.email, e.role_id, r.role_name, 
+                    e.department_id, d.department_name, d.description AS department_description
              FROM employees e 
-             LEFT JOIN roles r ON e.role_id = r.id`
+             LEFT JOIN roles r ON e.role_id = r.id
+             LEFT JOIN departments d ON e.department_id = d.id`
         );
         res.status(200).json({
             success: true,
@@ -60,7 +86,7 @@ export const getEmployeeById = async (req, res) => {
         const targetId = parseInt(req.params.id);
         const { id: currentUserId, role: currentUserRole } = req.user;
 
-       
+        // RBAC Check: Only Admin, HR, Manager or the employee themselves can view details
         if (currentUserRole !== "Admin" && currentUserRole !== "HR" && currentUserRole !== "Manager" && currentUserId !== targetId) {
             return res.status(403).json({
                 success: false,
@@ -69,9 +95,11 @@ export const getEmployeeById = async (req, res) => {
         }
 
         const [rows] = await db.query(
-            `SELECT e.id, e.name, e.email, e.role_id, r.role_name 
+            `SELECT e.id, e.name, e.email, e.role_id, r.role_name, 
+                    e.department_id, d.department_name, d.description AS department_description
              FROM employees e 
              LEFT JOIN roles r ON e.role_id = r.id 
+             LEFT JOIN departments d ON e.department_id = d.id 
              WHERE e.id = ?`,
             [targetId]
         );
@@ -101,9 +129,9 @@ export const updateEmployee = async (req, res) => {
     try {
         const targetId = parseInt(req.params.id);
         const { id: currentUserId, role: currentUserRole } = req.user;
-        const { name, email, password, role_id } = req.body;
+        const { name, email, password, role_id, department_id } = req.body;
 
-        
+        // RBAC Check: Only Admin, HR or the employee themselves can update the profile
         if (currentUserRole !== "Admin" && currentUserRole !== "HR" && currentUserId !== targetId) {
             return res.status(403).json({
                 success: false,
@@ -130,11 +158,42 @@ export const updateEmployee = async (req, res) => {
         let updatedRoleId = currentEmployee.role_id;
         if (role_id !== undefined) {
             if (currentUserRole === "Admin" || currentUserRole === "HR") {
+                const [roleCheck] = await db.query("SELECT * FROM roles WHERE id = ?", [role_id]);
+                if (roleCheck.length === 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid role_id. Role does not exist."
+                    });
+                }
                 updatedRoleId = role_id;
             } else if (parseInt(role_id) !== currentEmployee.role_id) {
                 return res.status(403).json({
                     success: false,
                     message: "Access Denied. Only Admin or HR can change roles."
+                });
+            }
+        }
+
+        // Prevent non-Admin/non-HR from changing department_id
+        let updatedDepartmentId = currentEmployee.department_id;
+        if (department_id !== undefined) {
+            if (currentUserRole === "Admin" || currentUserRole === "HR") {
+                if (department_id !== null && department_id !== "") {
+                    const [deptCheck] = await db.query("SELECT * FROM departments WHERE id = ?", [department_id]);
+                    if (deptCheck.length === 0) {
+                        return res.status(400).json({
+                            success: false,
+                            message: "Invalid department_id. Department does not exist."
+                        });
+                    }
+                    updatedDepartmentId = department_id;
+                } else {
+                    updatedDepartmentId = null;
+                }
+            } else if (department_id !== currentEmployee.department_id) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Access Denied. Only Admin or HR can change departments."
                 });
             }
         }
@@ -148,8 +207,8 @@ export const updateEmployee = async (req, res) => {
 
         // Update database
         await db.query(
-            "UPDATE employees SET name = ?, email = ?, password = ?, role_id = ? WHERE id = ?",
-            [updatedName, updatedEmail, updatedPassword, updatedRoleId, targetId]
+            "UPDATE employees SET name = ?, email = ?, password = ?, role_id = ?, department_id = ? WHERE id = ?",
+            [updatedName, updatedEmail, updatedPassword, updatedRoleId, updatedDepartmentId, targetId]
         );
 
         res.status(200).json({
