@@ -6,10 +6,10 @@ export const addEmployee = async (req, res) => {
         const { name, email, password, role_id, department_id } = req.body;
 
         // Check required fields
-        if (!name || !email || !password || !role_id) {
+        if (!name || !email || !password || !role_id || !department_id) {
             return res.status(400).json({
                 success: false,
-                message: "All fields (name, email, password, role_id) are required."
+                message: "All fields (name, email, password, role_id, department_id) are required."
             });
         }
 
@@ -47,7 +47,19 @@ export const addEmployee = async (req, res) => {
             success: true,
             message: "Employee added securely with hashed password!"
         });
-        
+
+        const [emailCheck] = await db.query(
+            "SELECT * FROM employees WHERE email = ?",
+            [email]
+        );
+
+        if (emailCheck.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
+
     } catch (error) {
         console.error("Error in addEmployee:", error.message);
         res.status(500).json({
@@ -153,7 +165,7 @@ export const updateEmployee = async (req, res) => {
         // Determine final values
         const updatedName = name || currentEmployee.name;
         const updatedEmail = email || currentEmployee.email;
-        
+
         // Prevent non-Admin/non-HR from changing role_id
         let updatedRoleId = currentEmployee.role_id;
         if (role_id !== undefined) {
@@ -216,6 +228,17 @@ export const updateEmployee = async (req, res) => {
             message: "Employee updated successfully!"
         });
 
+        const [duplicateEmail] = await db.query(
+            "SELECT * FROM employees WHERE email = ? AND id != ?",
+            [updatedEmail, targetId]
+        );
+
+        if (duplicateEmail.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
     } catch (error) {
         console.error("Error in updateEmployee: ", error.message);
         res.status(500).json({
@@ -230,7 +253,7 @@ export const deleteEmployee = async (req, res) => {
     try {
         const targetId = parseInt(req.params.id);
 
-        
+
         if (req.user.role !== "Admin") {
             return res.status(403).json({
                 success: false,

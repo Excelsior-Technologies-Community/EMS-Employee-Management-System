@@ -18,6 +18,22 @@ export const addDepartment = async (req, res) => {
             success: true,
             message: "Department added successfully"
         });
+
+        const [existing] = await db.query(
+            "SELECT * FROM departments WHERE department_name = ?",
+            [department_name]
+        );
+
+        if (existing.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Department already exists."
+            });
+        }
+        await db.query(
+    "CALL SP_AddDepartment(?, ?)",
+    [department_name, description]
+);
     } catch (error) {
         console.log("Error ", error.message)
         res.status(500).json({
@@ -28,18 +44,18 @@ export const addDepartment = async (req, res) => {
 }
 
 // get alldepartments
-export const getAllDepartments = async(req , res ) =>{
+export const getAllDepartments = async (req, res) => {
     try {
-       const [rows] = await db.query(
+        const [rows] = await db.query(
             `SELECT d.id ,d.department_name ,d.description
             FROM departments d
             `
         );
         res.status(200).json({
-            success:true,
+            success: true,
             data: rows
         })
-        
+
     } catch (error) {
         console.log("Error in getAllDepartment: ", error.message)
         res.status(500).json({
@@ -49,23 +65,23 @@ export const getAllDepartments = async(req , res ) =>{
     }
 }
 // get department by ID
-export const getDepartmentById = async(req , res ) =>{
+export const getDepartmentById = async (req, res) => {
     try {
-        const {id} = req.params;
-        const [rows]=await db.query(
-          "SELECT d.id, d.department_name ,d.description FROM departments d WHERE id = ?",[id]  
+        const { id } = req.params;
+        const [rows] = await db.query(
+            "SELECT d.id, d.department_name ,d.description FROM departments d WHERE id = ?", [id]
         );
-        if(rows.length == 0 ){
+        if (rows.length == 0) {
             return res.status(404).json({
-                success:false,
-                message:"Department not found!"
+                success: false,
+                message: "Department not found!"
             });
         }
         return res.status(200).json({
             success: true,
             data: rows[0]
         })
-        
+
     } catch (error) {
         console.log("Error in getdepartmentById ", error.message)
         res.status(500).json({
@@ -77,24 +93,24 @@ export const getDepartmentById = async(req , res ) =>{
 
 // Update department
 
-export const updateDepartment = async (req, res) =>{
+export const updateDepartment = async (req, res) => {
     try {
-        const {id} = req.params
-        const {department_name , description} = req.body
-        
+        const { id } = req.params
+        const { department_name, description } = req.body
+
         const [existing] = await db.query(
-            "SELECT * FROM departments WHERE id = ? ",[id]
+            "SELECT * FROM departments WHERE id = ? ", [id]
         );
-        if(existing.length === 0 ){
+        if (existing.length === 0) {
             return res.status(404).json({
-                success:false,
+                success: false,
                 message: 'department not found!'
             });
 
         }
         await db.query(
             "UPDATE departments SET department_name = ?,description = ? WHERE id = ?",
-            [department_name,description,id]
+            [department_name, description, id]
         );
         return res.status(200).json({
             success: true,
@@ -111,30 +127,30 @@ export const updateDepartment = async (req, res) =>{
 
 // delete department
 
-export const deleteDepartment = async(req, res) =>{
+export const deleteDepartment = async (req, res) => {
     try {
-       const {id} = req.params
-      
-       const [existing] = await db.query(
-        "SELECT * FROM departments WHERE id = ?",
-        [id]
-       );
-       if(existing.length === 0 ){
-        return res.status(404).json({
-            success: false,
-            message: "department not found"
-        });
+        const { id } = req.params
 
-       }
-       await db.query(
-        "DELETE FROM departments WHERE id = ?",[id]
-       );
+        const [existing] = await db.query(
+            "SELECT * FROM departments WHERE id = ?",
+            [id]
+        );
+        if (existing.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "department not found"
+            });
+
+        }
+        await db.query(
+            "DELETE FROM departments WHERE id = ?", [id]
+        );
         return res.status(200).json({
             success: true,
             message: "department deleted successfully"
         });
 
-        
+
     } catch (error) {
         console.log("Error  in deleteDepartment", error.message)
         return res.status(500).json({
