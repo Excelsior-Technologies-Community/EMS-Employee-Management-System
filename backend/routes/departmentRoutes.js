@@ -49,8 +49,7 @@ const router = express.Router();
  */
 router.post(
     "/",
-    verifyToken,
-    authorizeRoles("Admin", "HR"),
+    
     addDepartment
 );
 /**
@@ -139,7 +138,7 @@ router.get(
 router.put(
     "/:id",
     verifyToken,
-    authorizeRoles("Admin", "HR"),
+    authorizeRoles("Admin"),
     updateDepartment
 );
 

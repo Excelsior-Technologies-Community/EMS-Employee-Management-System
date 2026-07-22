@@ -1,5 +1,6 @@
 import express from 'express';
-import { loginEmployee } from '../controller/authController.js';
+import { loginEmployee, logoutEmployee } from '../controller/authController.js';
+import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -34,5 +35,23 @@ const router = express.Router();
  *         description: Invalid Email or Password
  */
 router.post('/login', loginEmployee);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Employee Logout API
+ *     description: Log out the current employee and invalidate their session.
+ *     tags:
+ *       - Authentication
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful!
+ *       401:
+ *         description: Unauthorized (Token Missing or Invalid)
+ */
+router.post('/logout', verifyToken, logoutEmployee);
 
 export default router;

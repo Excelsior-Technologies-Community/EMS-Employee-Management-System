@@ -84,8 +84,7 @@ router.get(
  */
 router.post(
     "/add",
-    verifyToken,
-    authorizeRoles("Admin","HR"),
+    
     addEmployee
 );
 

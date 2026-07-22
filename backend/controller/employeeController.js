@@ -13,6 +13,18 @@ export const addEmployee = async (req, res) => {
             });
         }
 
+        // Validate unique email first
+        const [emailCheck] = await db.query(
+            "SELECT * FROM employees WHERE email = ?",
+            [email]
+        );
+        if (emailCheck.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
+
         // Validate role_id exists
         const [roleCheck] = await db.query("SELECT * FROM roles WHERE id = ?", [role_id]);
         if (roleCheck.length === 0) {
@@ -43,26 +55,14 @@ export const addEmployee = async (req, res) => {
             [name, email, hashedPassword, role_id, department_id || null]
         );
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Employee added securely with hashed password!"
         });
 
-        const [emailCheck] = await db.query(
-            "SELECT * FROM employees WHERE email = ?",
-            [email]
-        );
-
-        if (emailCheck.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Email already exists."
-            });
-        }
-
     } catch (error) {
         console.error("Error in addEmployee:", error.message);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Database Error: " + error.message
         });
@@ -210,6 +210,19 @@ export const updateEmployee = async (req, res) => {
             }
         }
 
+        // Prevent duplicate email
+        const [duplicateEmail] = await db.query(
+            "SELECT * FROM employees WHERE email = ? AND id != ?",
+            [updatedEmail, targetId]
+        );
+
+        if (duplicateEmail.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
+
         // Determine password
         let updatedPassword = currentEmployee.password;
         if (password) {
@@ -223,25 +236,13 @@ export const updateEmployee = async (req, res) => {
             [updatedName, updatedEmail, updatedPassword, updatedRoleId, updatedDepartmentId, targetId]
         );
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Employee updated successfully!"
         });
-
-        const [duplicateEmail] = await db.query(
-            "SELECT * FROM employees WHERE email = ? AND id != ?",
-            [updatedEmail, targetId]
-        );
-
-        if (duplicateEmail.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Email already exists."
-            });
-        }
     } catch (error) {
         console.error("Error in updateEmployee: ", error.message);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Database Error: " + error.message
         });

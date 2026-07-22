@@ -11,14 +11,7 @@ export const addDepartment = async (req, res) => {
             })
         }
 
-        // Call the stored procedure SP_AddDepartment
-        await db.query("CALL SP_AddDepartment(?, ?)", [department_name, description]);
-
-        res.status(201).json({
-            success: true,
-            message: "Department added successfully"
-        });
-
+        // Check if department already exists
         const [existing] = await db.query(
             "SELECT * FROM departments WHERE department_name = ?",
             [department_name]
@@ -30,15 +23,20 @@ export const addDepartment = async (req, res) => {
                 message: "Department already exists."
             });
         }
-        await db.query(
-    "CALL SP_AddDepartment(?, ?)",
-    [department_name, description]
-);
+
+        // Call the stored procedure SP_AddDepartment
+        await db.query("CALL SP_AddDepartment(?, ?)", [department_name, description]);
+
+        return res.status(201).json({
+            success: true,
+            message: "Department added successfully"
+        });
+
     } catch (error) {
         console.log("Error ", error.message)
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: "Database Error" + error.message
+            message: "Database Error: " + error.message
         });
     }
 }
@@ -51,16 +49,16 @@ export const getAllDepartments = async (req, res) => {
             FROM departments d
             `
         );
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: rows
-        })
+        });
 
     } catch (error) {
         console.log("Error in getAllDepartment: ", error.message)
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: "Database Error" + error.message
+            message: "Database Error: " + error.message
         });
     }
 }

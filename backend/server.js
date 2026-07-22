@@ -6,6 +6,7 @@ import { setupSwagger } from "./config/swagger.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import roleRoutes from "./routes/roleRoutes.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/departments", departmentRoutes);
+app.use("/api/roles", roleRoutes);
 
 const PORT = process.env.PORT || 5000;
 
