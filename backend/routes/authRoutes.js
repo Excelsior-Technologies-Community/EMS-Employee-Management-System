@@ -1,8 +1,33 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
+import { body, validationResult } from 'express-validator';
 import { loginEmployee, logoutEmployee } from '../controller/authController.js';
 import { verifyToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+// Brute force protection: 10 attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: "Too many login attempts. Please try again after 15 minutes." },
+});
+
+// Validation middleware
+const loginValidation = [
+    body('email').isEmail().withMessage('Valid email required.').normalizeEmail(),
+    body('password').notEmpty().withMessage('Password required.'),
+];
+
+const handleValidation = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+    }
+    next();
+};
 
 /**
  * @swagger
@@ -34,7 +59,7 @@ const router = express.Router();
  *       400:
  *         description: Invalid Email or Password
  */
-router.post('/login', loginEmployee);
+router.post('/login', loginLimiter, loginValidation, handleValidation, loginEmployee);
 
 /**
  * @swagger

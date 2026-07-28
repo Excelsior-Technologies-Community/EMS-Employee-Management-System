@@ -1,16 +1,29 @@
-# React + Vite
+# EMS — Employee Portal (Frontend)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Employee-only React app. Handles login, dashboard, viewing/editing your own
+profile, and changing your password. Talks to the existing EMS backend.
 
-Currently, two official plugins are available:
+## Stack
+React 19 · Vite · MUI v7 · React Router DOM · Axios · React Hook Form · Context API
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Setup
 
-## React Compiler
+```bash
+npm install
+cp .env.example .env   # then set VITE_API_URL to your backend URL
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Runs on `http://localhost:5173` by default. Backend is expected at
+`http://localhost:5000/api` (change via `.env`).
 
-## Expanding the ESLint configuration
+## Notes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Employee-only**: Login checks `user.role === 'Employee'`. Admin/HR/Manager
+  accounts are rejected here with a message pointing to the Admin app.
+- **Auth**: JWT stored in `localStorage` under `ems_token` / `ems_user`
+  (namespaced so it won't collide with the separate Admin app on the same
+  browser/device).
+- **Session expiry**: the axios response interceptor auto-clears storage and
+  redirects to `/login` on any 401 from the API.
+- Design tokens live in `src/theme/colors.js` — change palette/gradients there.

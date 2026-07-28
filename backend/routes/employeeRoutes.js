@@ -1,15 +1,38 @@
 import express from "express";
+import { body, validationResult } from 'express-validator';
 import { 
     addEmployee, 
     getAllEmployees, 
     getEmployeeById, 
     updateEmployee, 
-    deleteEmployee 
+    deleteEmployee ,
+    toggleEmployeeStatus 
 } from "../controller/employeeController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
+
+const handleValidation = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+    }
+    next();
+};
+
+const addEmployeeValidation = [
+    body('name').trim().notEmpty().withMessage('Name is required.'),
+    body('email').isEmail().withMessage('Valid email is required.').normalizeEmail(),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
+    body('role_id').isInt({ min: 1 }).withMessage('Valid role_id is required.'),
+    body('department_id').isInt({ min: 1 }).withMessage('Valid department_id is required.'),
+];
+
+const updateEmployeeValidation = [
+    body('email').optional().isEmail().withMessage('Valid email is required.').normalizeEmail(),
+    body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
+];
 
 /**
  * @swagger
@@ -84,7 +107,10 @@ router.get(
  */
 router.post(
     "/add",
-    
+    verifyToken,
+    authorizeRoles("Admin", "HR"),
+    addEmployeeValidation,
+    handleValidation,
     addEmployee
 );
 
@@ -187,7 +213,12 @@ router.post(
  *         description: Internal Server Error
  */
 router.get("/:id", verifyToken, getEmployeeById);
-router.put("/:id", verifyToken, updateEmployee);
+router.put("/:id", verifyToken, updateEmployeeValidation, handleValidation, updateEmployee);
 router.delete("/:id", verifyToken, authorizeRoles("Admin"), deleteEmployee);
-
+router.patch(
+    "/:id/status",
+    verifyToken,
+    authorizeRoles("Admin", "HR"),
+    toggleEmployeeStatus
+);
 export default router;

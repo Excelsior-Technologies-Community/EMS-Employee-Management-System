@@ -24,8 +24,11 @@ export const addDepartment = async (req, res) => {
             });
         }
 
-        // Call the stored procedure SP_AddDepartment
-        await db.query("CALL SP_AddDepartment(?, ?)", [department_name, description]);
+        // Insert directly — raw query (consistent with updateDepartment/deleteDepartment)
+        await db.query(
+            "INSERT INTO departments (department_name, description) VALUES (?, ?)",
+            [department_name, description]
+        );
 
         return res.status(201).json({
             success: true,

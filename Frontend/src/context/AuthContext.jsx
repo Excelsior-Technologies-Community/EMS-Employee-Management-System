@@ -1,48 +1,61 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import API from '../api/axios';
+import { authService } from '../services/authService';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('ems_token');
+    const savedUser = localStorage.getItem('ems_user');
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        localStorage.removeItem('ems_token');
+        localStorage.removeItem('ems_user');
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (tokenData, userData) => {
-    localStorage.setItem('token', tokenData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setToken(tokenData);
+  const login = (token, userData) => {
+    localStorage.setItem('ems_token', token);
+    localStorage.setItem('ems_user', JSON.stringify(userData));
     setUser(userData);
+  };
+
+  const updateUserData = (partial) => {
+    setUser((prev) => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem('ems_user', JSON.stringify(next));
+      return next;
+    });
   };
 
   const logout = async () => {
     try {
-      await API.post('/auth/logout');
-    } catch (err) {
-      console.error('Logout API call failed, continuing with client-side cleanup:', err);
+      await authService.logout();
+    } catch {
+      // ignore — proceed with client-side cleanup regardless
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setToken(null);
+      localStorage.removeItem('ems_token');
+      localStorage.removeItem('ems_user');
       setUser(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
+};

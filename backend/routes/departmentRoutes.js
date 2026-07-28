@@ -49,7 +49,8 @@ const router = express.Router();
  */
 router.post(
     "/",
-    
+    verifyToken,
+    authorizeRoles("Admin"),
     addDepartment
 );
 /**

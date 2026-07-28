@@ -2,6 +2,12 @@ import db from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Startup pe JWT_SECRET validate karo
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET is not defined in environment variables. Exiting.');
+    process.exit(1);
+}
+
 export const loginEmployee = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -32,7 +38,7 @@ export const loginEmployee = async (req, res) => {
        
         const token = jwt.sign(
             { id: user.id, role: user.role_name },
-            process.env.JWT_SECRET || 'my_super_secret_key_123', 
+            process.env.JWT_SECRET,
             { expiresIn: '1d' } 
         );
 
@@ -49,7 +55,7 @@ export const loginEmployee = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error('Login error:', error.message);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 };

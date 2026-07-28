@@ -26,7 +26,10 @@ export const addEmployee = async (req, res) => {
         }
 
         // Validate role_id exists
-        const [roleCheck] = await db.query("SELECT * FROM roles WHERE id = ?", [role_id]);
+        const [roleCheck] = await db.query(
+            "SELECT * FROM roles WHERE id = ?",
+            [role_id]
+        );
         if (roleCheck.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -36,7 +39,10 @@ export const addEmployee = async (req, res) => {
 
         // Validate department_id exists (if provided)
         if (department_id) {
-            const [deptCheck] = await db.query("SELECT * FROM departments WHERE id = ?", [department_id]);
+            const [deptCheck] = await db.query(
+                "SELECT * FROM departments WHERE id = ?",
+                [department_id]
+            );
             if (deptCheck.length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -49,9 +55,9 @@ export const addEmployee = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Call the stored procedure SP_AddEmployee
+        // Insert directly — raw query (consistent pattern, no stored procedure dependency)
         await db.query(
-            'CALL SP_AddEmployee(?, ?, ?, ?, ?)',
+            "INSERT INTO employees (name, email, password, role_id, department_id) VALUES (?, ?, ?, ?, ?)",
             [name, email, hashedPassword, role_id, department_id || null]
         );
 
@@ -69,19 +75,48 @@ export const addEmployee = async (req, res) => {
     }
 };
 
-// Get all employees
+// Get all employees (with optional pagination & search)
 export const getAllEmployees = async (req, res) => {
     try {
-        const [rows] = await db.query(
-            `SELECT e.id, e.name, e.email, e.role_id, r.role_name, 
-                    e.department_id, d.department_name, d.description AS department_description
-             FROM employees e 
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+        const search = req.query.search ? `%${req.query.search}%` : null;
+        const offset = (page - 1) * limit;
+
+        const baseWhere = search
+            ? "WHERE e.name LIKE ? OR e.email LIKE ? OR r.role_name LIKE ?"
+            : "";
+        const params = search ? [search, search, search] : [];
+
+        const [[{ total }]] = await db.query(
+            `SELECT COUNT(*) AS total
+             FROM employees e
              LEFT JOIN roles r ON e.role_id = r.id
-             LEFT JOIN departments d ON e.department_id = d.id`
+             ${baseWhere}`,
+            params
         );
+
+        const [rows] = await db.query(
+            `SELECT e.id, e.name, e.email, e.role_id, r.role_name,
+                    e.department_id, d.department_name, d.description AS department_description
+             FROM employees e
+             LEFT JOIN roles r ON e.role_id = r.id
+             LEFT JOIN departments d ON e.department_id = d.id
+             ${baseWhere}
+             ORDER BY e.id ASC
+             LIMIT ? OFFSET ?`,
+            [...params, limit, offset]
+        );
+
         res.status(200).json({
             success: true,
-            data: rows
+            data: rows,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
         });
     } catch (error) {
         console.error("Error in getAllEmployees: ", error.message);
@@ -286,3 +321,41 @@ export const deleteEmployee = async (req, res) => {
 };
 
 
+// Toggle employee active/inactive status
+export const toggleEmployeeStatus = async (req, res) => {
+    try {
+        const targetId = parseInt(req.params.id);
+        const { status } = req.body; // expects 0 or 1
+
+        if (status !== 0 && status !== 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Status must be 0 (inactive) or 1 (active)."
+            });
+        }
+
+        const [existing] = await db.query("SELECT * FROM employees WHERE id = ?", [targetId]);
+        if (existing.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee not found"
+            });
+        }
+
+        await db.query(
+            "UPDATE employees SET status = ?, updated_by = ? WHERE id = ?",
+            [status, req.user.id, targetId]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: `Employee ${status === 1 ? 'activated' : 'deactivated'} successfully!`
+        });
+    } catch (error) {
+        console.error("Error in toggleEmployeeStatus: ", error.message);
+        res.status(500).json({
+            success: false,
+            message: "Database Error: " + error.message
+        });
+    }
+};
