@@ -61,21 +61,21 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <StatCard icon={<GroupRoundedIcon />} label="Total Employees" value={employees.length} tone={{ fg: colors.navy, bg: colors.navySoft }} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2 }}>
           <StatCard icon={<CheckCircleRoundedIcon />} label="Active Employees" value={activeCount} tone={{ fg: colors.success, bg: colors.successSoft }} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 2}}>
           <StatCard icon={<CancelRoundedIcon />} label="Inactive Employees" value={inactiveCount} tone={{ fg: colors.neutral, bg: colors.neutralSoft }} />
         </Grid>
         {hasRole('Admin') && (
           <>
-            <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <StatCard icon={<ApartmentRoundedIcon />} label="Departments" value={departments.length} tone={{ fg: colors.info, bg: colors.infoSoft }} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 2 }}>
               <StatCard icon={<AdminPanelSettingsRoundedIcon />} label="Roles" value={roles.length} tone={{ fg: colors.amberDeep, bg: colors.amberSoft }} />
             </Grid>
           </>
