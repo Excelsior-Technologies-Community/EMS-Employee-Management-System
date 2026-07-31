@@ -11,12 +11,14 @@ import roleRoutes from "./routes/roleRoutes.js";
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
+    `http://localhost:${PORT}`,
 ].filter(Boolean);
 
 app.use(cors({
@@ -45,8 +47,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/employees", employeeRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/roles", roleRoutes);
-
-const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server started at http://localhost:${PORT}`);

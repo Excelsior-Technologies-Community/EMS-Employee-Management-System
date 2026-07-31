@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate ,  Link as RouterLink  } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Box, Card, Typography, Alert, InputAdornment, IconButton,
+  Box, Card, Typography, Alert, InputAdornment, IconButton, Link
 } from '@mui/material';
 import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import LockOutlineRoundedIcon from '@mui/icons-material/LockOutlineRounded';
@@ -101,6 +101,23 @@ const Login = () => {
                 </InputAdornment>
               }
             />
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -0.5, mb: 1 }}>
+              <Link
+                component={RouterLink}
+                to="/forgot-password"
+                variant="body2"
+                sx={{
+                  color: colors.amber,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' }
+                }}
+              >
+                Forgot Password?
+              </Link>
+            </Box>
+
             <CustomButton type="submit" fullWidth loading={loading} sx={{ mt: 2.5, py: 1.25 }}>
               Sign in
             </CustomButton>

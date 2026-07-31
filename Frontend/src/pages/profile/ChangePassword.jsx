@@ -8,7 +8,7 @@ import CustomInput from '../../components/common/CustomInput';
 import CustomButton from '../../components/common/CustomButton';
 import { useAuth } from '../../context/AuthContext';
 import { profileService } from '../../services/profileService';
-import { getErrorMessage } from '../../services/api';
+
 import { passwordMinLength } from '../../utils/validators';
 
 const ChangePassword = () => {

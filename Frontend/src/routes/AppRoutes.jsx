@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../layouts/MainLayout';
 import Login from '../pages/auth/Login';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import Dashboard from '../pages/dashboard/Dashboard';
 import MyProfile from '../pages/profile/MyProfile';
 import EditProfile from '../pages/profile/EditProfile';
@@ -16,6 +17,7 @@ const withLayout = (page) => (
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
 
     <Route path="/dashboard" element={withLayout(<Dashboard />)} />
     <Route path="/profile" element={withLayout(<MyProfile />)} />

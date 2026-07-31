@@ -3,6 +3,7 @@ import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
 import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import { useAuth } from '../../context/AuthContext';
 import { useFetch } from '../../hooks/useFetch';
 import { employeeService } from '../../services/employeeService';
@@ -43,6 +44,7 @@ const Dashboard = () => {
   const departments = deptRes?.data || [];
   const roles = roleRes?.data || [];
   const activeCount = employees.filter((e) => e.status === 1).length;
+  const inactiveCount = employees.length - activeCount;
 
   if (empLoading || deptLoading || roleLoading) return <Loader label="Loading dashboard..." minHeight="60vh" />;
 
@@ -59,18 +61,21 @@ const Dashboard = () => {
       </Box>
 
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard icon={<GroupRoundedIcon />} label="Total Employees" value={employees.length} tone={{ fg: colors.navy, bg: colors.navySoft }} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard icon={<CheckCircleRoundedIcon />} label="Active Employees" value={activeCount} tone={{ fg: colors.success, bg: colors.successSoft }} />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <StatCard icon={<CancelRoundedIcon />} label="Inactive Employees" value={inactiveCount} tone={{ fg: colors.neutral, bg: colors.neutralSoft }} />
         </Grid>
         {hasRole('Admin') && (
           <>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 6 }}>
               <StatCard icon={<ApartmentRoundedIcon />} label="Departments" value={departments.length} tone={{ fg: colors.info, bg: colors.infoSoft }} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 6 }}>
               <StatCard icon={<AdminPanelSettingsRoundedIcon />} label="Roles" value={roles.length} tone={{ fg: colors.amberDeep, bg: colors.amberSoft }} />
             </Grid>
           </>

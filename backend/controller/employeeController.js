@@ -98,7 +98,8 @@ export const getAllEmployees = async (req, res) => {
 
         const [rows] = await db.query(
             `SELECT e.id, e.name, e.email, e.role_id, r.role_name,
-                    e.department_id, d.department_name, d.description AS department_description
+                    e.department_id, d.department_name, d.description AS department_description,
+                    e.status
              FROM employees e
              LEFT JOIN roles r ON e.role_id = r.id
              LEFT JOIN departments d ON e.department_id = d.id
@@ -143,7 +144,8 @@ export const getEmployeeById = async (req, res) => {
 
         const [rows] = await db.query(
             `SELECT e.id, e.name, e.email, e.role_id, r.role_name, 
-                    e.department_id, d.department_name, d.description AS department_description
+                    e.department_id, d.department_name, d.description AS department_description,
+                    e.status
              FROM employees e 
              LEFT JOIN roles r ON e.role_id = r.id 
              LEFT JOIN departments d ON e.department_id = d.id 

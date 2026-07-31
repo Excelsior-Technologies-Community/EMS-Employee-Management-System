@@ -9,7 +9,7 @@ import DepartmentList from '../pages/departments/DepartmentList';
 import RoleList from '../pages/roles/RoleList';
 import Profile from '../pages/profile/Profile';
 import ChangePassword from '../pages/profile/ChangePassword';
-
+import ForgotPassword from '../pages/auth/ForgotPassword';
 const withLayout = (page, roles) => (
   <ProtectedRoute roles={roles}>
     <AdminLayout>{page}</AdminLayout>
@@ -19,6 +19,7 @@ const withLayout = (page, roles) => (
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/forgot-password" element={<ForgotPassword />} />
     <Route path="/unauthorized" element={<Unauthorized />} />
 
     {/* Admin, HR, Manager */}
