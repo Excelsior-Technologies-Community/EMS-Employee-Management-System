@@ -1,7 +1,13 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
-import { loginEmployee, logoutEmployee, forgotPassword, verifyOTP, resetPassword } from '../controller/authController.js';
+import { loginEmployee, 
+    logoutEmployee,
+     forgotPassword,
+      verifyOTP, 
+      resetPassword ,
+    loginWithGoogle } from '../controller/authController.js';
+
 import { verifyToken } from '../middleware/authMiddleware.js';
 
 
@@ -212,4 +218,34 @@ router.post('/verify-otp', verifyOTPLimiter, verifyOTPValidation, handleValidati
  */
 router.post('/reset-password', resetPasswordLimiter, resetPasswordValidation, handleValidation, resetPassword);
 
-export default router;
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: Login with Google
+ *     description: Verifies a Google ID token and logs in the matching employee.
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 example: eyJhbGciOiJSUzI1NiIsImtpZCI6...
+ *     responses:
+ *       200:
+ *         description: Login successful!
+ *       401:
+ *         description: Invalid or expired Google token
+ *       404:
+ *         description: No account found for this email
+ */
+router.post('/google', loginLimiter, loginWithGoogle);
+
+export default router;

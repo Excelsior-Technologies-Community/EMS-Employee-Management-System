@@ -1,10 +1,13 @@
 import db from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { sendOTPEmail } from '../config/emailService.js';
 
+import { sendOTPEmail } from '../config/emailService.js';
+import {OAuth2Client} from 'google-auth-library';
+const googleClient  = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, );
 
 // Startup pe JWT_SECRET validate karo
+
 if (!process.env.JWT_SECRET) {
     console.error('FATAL: JWT_SECRET is not defined in environment variables. Exiting.');
     process.exit(1);
@@ -194,3 +197,67 @@ export const resetPassword = async (req, res) => {
     }
 };
 
+export const loginWithGoogle = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+
+        if (!idToken) {
+            return res.status(400).json({ success: false, message: "idToken is required." });
+        }
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            console.error('GOOGLE_CLIENT_ID is not configured.');
+            return res.status(500).json({ success: false, message: "Google login is not configured on the server." });
+        }
+
+       
+        const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+
+        if (!payload.email_verified) {
+            return res.status(401).json({ success: false, message: "Google email is not verified." });
+        }
+
+       
+        const [users] = await db.query(
+            `SELECT e.*, r.role_name FROM employees e
+             INNER JOIN roles r ON e.role_id = r.id
+             WHERE e.email = ? AND e.status = 1`,
+            [payload.email]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No account found for this email. Contact your Administrator."
+            });
+        }
+
+        const user = users[0];
+
+        const token = jwt.sign(
+            { id: user.id, role: user.role_name },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Google login successful!",
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role_name
+            }
+        });
+
+    } catch (error) {
+        console.error('Google login error:', error.message);
+        res.status(401).json({ success: false, message: "Invalid or expired Google token." });
+    }
+};

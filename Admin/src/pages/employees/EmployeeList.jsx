@@ -63,9 +63,9 @@ const EmployeeList = () => {
 
   const columns = [
     { key: 'name', label: 'Name' },
-    { key: 'email', label: 'Email' },
-    { key: 'role_name', label: 'Role', render: (row) => <RoleBadge role={row.role_name} /> },
-    { key: 'department_name', label: 'Department', render: (row) => <DepartmentAvatar name={row.department_name} size={26} /> },
+    { key: 'email', label: 'Email', sx: { display: { xs: 'none', md: 'table-cell' } } },
+    { key: 'role_name', label: 'Role', render: (row) => <RoleBadge role={row.role_name} />, sx: { display: { xs: 'none', sm: 'table-cell' } } },
+    { key: 'department_name', label: 'Department', render: (row) => <DepartmentAvatar name={row.department_name} size={26} />, sx: { display: { xs: 'none', sm: 'table-cell' } } },
     ...(canToggleStatus
       ? [{
           key: 'status',

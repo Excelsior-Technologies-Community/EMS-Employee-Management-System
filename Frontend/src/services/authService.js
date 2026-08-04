@@ -2,6 +2,7 @@ import api from './api';
 
 export const authService = {
   login: (email, password) => api.post('/auth/login', { email, password }),
+  loginWithGoogle: (idToken) => api.post('/auth/google', { idToken }),
   logout: () => api.post('/auth/logout'),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   verifyOTP: (email, otp) => api.post('/auth/verify-otp', { email, otp }),

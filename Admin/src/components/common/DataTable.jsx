@@ -72,7 +72,7 @@ const DataTable = ({
           placeholder={searchPlaceholder}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          sx={{ minWidth: 260 }}
+          sx={{ width: { xs: '100%', sm: 260 } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -88,14 +88,14 @@ const DataTable = ({
         <Loader label="Loading data..." minHeight="30vh" />
       ) : (
         <>
-          <TableContainer>
+          <TableContainer sx={{ overflowX: 'auto', width: '100%', display: 'block' }}>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   {columns.map((col) => (
                     <TableCell
                       key={col.key}
-                      sx={{ py: 1.5, borderBottom: `2px solid ${colors.line}`, bgcolor: colors.navySoft }}
+                      sx={{ py: 1.5, borderBottom: `2px solid ${colors.line}`, bgcolor: colors.navySoft, ...col.sx }}
                     >
                       {col.sortable !== false ? (
                         <TableSortLabel
@@ -127,7 +127,7 @@ const DataTable = ({
                       sx={{ '&:last-of-type td': { borderBottom: 0 } }}
                     >
                       {columns.map((col) => (
-                        <TableCell key={col.key} sx={{ py: 1.5, borderBottom: `1px solid ${colors.line}` }}>
+                        <TableCell key={col.key} sx={{ py: 1.5, borderBottom: `1px solid ${colors.line}`, ...col.sx }}>
                           {col.render ? col.render(row) : row[col.key]}
                         </TableCell>
                       ))}

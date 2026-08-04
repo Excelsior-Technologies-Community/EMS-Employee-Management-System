@@ -44,7 +44,7 @@ const DepartmentList = () => {
 
   const columns = [
     { key: 'department_name', label: 'Department', render: (row) => <DepartmentAvatar name={row.department_name} /> },
-    { key: 'description', label: 'Description', render: (row) => row.description || '—' },
+    { key: 'description', label: 'Description', render: (row) => row.description || '—', sx: { display: { xs: 'none', sm: 'table-cell' } } },
     ...(canWrite
       ? [{
           key: 'actions',

@@ -1,3 +1,4 @@
+/* global google */
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate ,  Link as RouterLink  } from 'react-router-dom';
@@ -24,6 +25,66 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { user, login } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleLoginResponse = async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await authService.loginWithGoogle(response.credential);
+      const { token, user: userData } = res.data;
+
+      if (!['admin', 'hr', 'manager'].includes(userData.role?.toLowerCase())) {
+        setError('This portal is for administrators and managers only.');
+        setLoading(false);
+        return;
+      }
+
+      login(token, userData);
+      toast.success(`Welcome back, ${userData.name.split(' ')[0]}!`);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let interval;
+    const initializeGoogleSignIn = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: handleGoogleLoginResponse,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-login-btn'),
+          {
+            theme: 'outline',
+            size: 'large',
+            width: 340, // fixed pixel width matching form fields
+            text: 'signin_with',
+            shape: 'rectangular',
+          }
+        );
+      }
+    };
+
+    if (window.google) {
+      initializeGoogleSignIn();
+    } else {
+      interval = setInterval(() => {
+        if (window.google) {
+          initializeGoogleSignIn();
+          clearInterval(interval);
+        }
+      }, 100);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true });
@@ -121,6 +182,27 @@ const Login = () => {
             <CustomButton type="submit" fullWidth loading={loading} sx={{ mt: 2.5, py: 1.25 }}>
               Sign in
             </CustomButton>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', my: 2.5 }}>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
+              <Typography variant="caption" sx={{ mx: 2, color: 'text.secondary', fontWeight: 500 }}>
+                OR
+              </Typography>
+              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
+            </Box>
+
+            <Box
+              id="google-login-btn"
+              sx={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                minHeight: '40px',
+                '& iframe': {
+                  margin: '0 auto',
+                }
+              }}
+            />
           </form>
 
 
