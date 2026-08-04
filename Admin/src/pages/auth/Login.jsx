@@ -106,110 +106,217 @@ const Login = () => {
     }
   };
 
-  return (
-    <Box
+ return (
+  <Box
+    sx={{
+      minHeight: "100vh",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      background:
+        "linear-gradient(135deg,#0f172a 0%,#1e293b 45%,#334155 100%)",
+      p: 2,
+    }}
+  >
+    <Card
+      elevation={12}
       sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: colors.navy,
-        backgroundImage: `radial-gradient(circle at 15% 20%, ${colors.navyDeep} 0%, ${colors.navy} 55%)`,
-        p: 2,
+        width: 450,
+        
+        p: 4,
+        boxShadow: "0 20px 45px rgba(0,0,0,.25)",
       }}
     >
-      <Card sx={{ maxWidth: 420, width: '100%', borderRadius: 4, overflow: 'hidden' }}>
-        <Box sx={{ bgcolor: colors.navy, px: 4, py: 3.5, position: 'relative' }}>
-          <Box sx={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', bgcolor: colors.amber }} />
-          <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 22, color: '#fff' }}>
-            EMS
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.25 }}>
-            Admin Panel
-          </Typography>
+      <Typography
+        variant="h3"
+        align="center"
+        fontWeight={800}
+        sx={{
+          color: "text.secondary",
+          letterSpacing: 2,
+        }}
+      >
+        EMS
+      </Typography>
+
+      <Typography
+        align="center"
+        sx={{
+          color: "text.secondary",
+          mt: 1,
+          fontWeight: 500,
+        }}
+      >
+        Employee Management System
+      </Typography>
+
+      <Box
+        sx={{
+          mt: 2,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Box
+          sx={{
+            bgcolor: "#fff7ed",
+            color: "#c08b63",
+            px: 2,
+            py: 0.7,
+            borderRadius: 10,
+            fontWeight: 700,
+            fontSize: 13,
+          }}
+        >
+          ADMIN PANEL
         </Box>
+      </Box>
 
-        <Box sx={{ p: 4 }}>
-          <Typography variant="h6" sx={{ mb: 0.5 }}>Sign in</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-            For Admin, HR &amp; Manager accounts.
-          </Typography>
+      <Typography
+        variant="h5"
+        align="center"
+        sx={{
+          mt: 4,
+          fontWeight: 700,
+        }}
+      >
+        
+      </Typography>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Typography
+        align="center"
+        color="text.secondary"
+        sx={{ mb: 4 }}
+      >
+        Sign in to access the Administration Dashboard
+      </Typography>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <CustomInput
-              name="email"
-              control={control}
-              label="Email"
-              type="email"
-              rules={{ required: 'Email is required', pattern: emailPattern }}
-              startIcon={<MailOutlineRoundedIcon fontSize="small" />}
-              autoFocus
-            />
-            <CustomInput
-              name="password"
-              control={control}
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              rules={{ required: 'Password is required' }}
-              startIcon={<LockOutlineRoundedIcon fontSize="small" />}
-              endAdornment={
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setShowPassword((v) => !v)} edge="end">
-                    {showPassword ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
-                  </IconButton>
-                </InputAdornment>
-              }
-            />
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -0.5, mb: 1 }}>
-              <Link
-                component={RouterLink}
-                to="/forgot-password"
-                variant="body2"
-                sx={{
-                  color: colors.amber,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  '&:hover': { textDecoration: 'underline' }
-                }}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <CustomInput
+          name="email"
+          control={control}
+          label="Work Email"
+          type="email"
+          autoFocus
+          rules={{
+            required: "Email is required",
+            pattern: emailPattern,
+          }}
+          startIcon={<MailOutlineRoundedIcon />}
+        />
+
+        <CustomInput
+          name="password"
+          control={control}
+          label="Password"
+          type={showPassword ? "text" : "password"}
+          rules={{
+            required: "Password is required",
+          }}
+          startIcon={<LockOutlineRoundedIcon />}
+          endAdornment={
+            <InputAdornment position="end">
+              <IconButton
+                size="small"
+                onClick={() => setShowPassword((prev) => !prev)}
               >
-                Forgot Password?
-              </Link>
-            </Box>
+                {showPassword ? (
+                  <VisibilityOffRoundedIcon />
+                ) : (
+                  <VisibilityRoundedIcon />
+                )}
+              </IconButton>
+            </InputAdornment>
+          }
+        />
 
-            <CustomButton type="submit" fullWidth loading={loading} sx={{ mt: 2.5, py: 1.25 }}>
-              Sign in
-            </CustomButton>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', my: 2.5 }}>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
-              <Typography variant="caption" sx={{ mx: 2, color: 'text.secondary', fontWeight: 500 }}>
-                OR
-              </Typography>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
-            </Box>
-
-            <Box
-              id="google-login-btn"
-              sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                minHeight: '40px',
-                '& iframe': {
-                  margin: '0 auto',
-                }
-              }}
-            />
-          </form>
-
-
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            mt: -0.5,
+            mb: 1,
+          }}
+        >
+          <Link
+            component={RouterLink}
+            to="/forgot-password"
+            underline="hover"
+            sx={{
+              color: "#f59e0b",
+              fontWeight: 600,
+            }}
+          >
+            Forgot Password?
+          </Link>
         </Box>
-      </Card>
-    </Box>
-  );
+
+        <CustomButton
+          type="submit"
+          fullWidth
+          loading={loading}
+          sx={{
+            mt: 3,
+            py: 1.5,
+            borderRadius: 3,
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          Sign In
+        </CustomButton>
+
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            my: 4,
+          }}
+        >
+          <Box sx={{ flex: 1, height: 1, bgcolor: "divider" }} />
+
+          <Typography
+            variant="body2"
+            sx={{
+              mx: 2,
+              color: "text.secondary",
+            }}
+          >
+            OR
+          </Typography>
+
+          <Box sx={{ flex: 1, height: 1, bgcolor: "divider" }} />
+        </Box>
+
+        <Box
+            display="flex"
+            justifyContent="center"
+            
+          >
+            <Box id="google-login-btn"></Box>
+          </Box>
+      </form>
+
+      <Typography
+        variant="caption"
+        align="center"
+        sx={{
+          display: "block",
+          mt: 4,
+          color: "text.secondary",
+        }}
+      >
+        © 2026 Employee Management System • Admin Portal
+      </Typography>
+    </Card>
+  </Box>
+);
 };
 
 export default Login;

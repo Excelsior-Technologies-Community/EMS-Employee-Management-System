@@ -1,45 +1,75 @@
 /* global google */
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
+
 import {
-  Box, Card, Typography, Alert, InputAdornment, IconButton, Link,
-} from '@mui/material';
-import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
-import LockOutlineRoundedIcon from '@mui/icons-material/LockOutlineRounded';
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
-import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
-import CustomInput from '../../components/common/CustomInput';
-import CustomButton from '../../components/common/CustomButton';
-import { authService } from '../../services/authService';
-import { getErrorMessage } from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
-import { colors } from '../../theme/colors';
-import { emailPattern } from '../../utils/validators';
+  Box,
+  Card,
+  Typography,
+  Alert,
+  InputAdornment,
+  IconButton,
+  Divider,
+  Link,
+} from "@mui/material";
+
+import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
+import LockOutlineRoundedIcon from "@mui/icons-material/LockOutlineRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
+import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+
+import CustomInput from "../../components/common/CustomInput";
+import CustomButton from "../../components/common/CustomButton";
+
+import { authService } from "../../services/authService";
+import { getErrorMessage } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { emailPattern } from "../../utils/validators";
 
 const Login = () => {
-  const { control, handleSubmit } = useForm({ defaultValues: { email: '', password: '' } });
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { user, login } = useAuth();
   const navigate = useNavigate();
+  const { user, login } = useAuth();
 
+  const {
+    control,
+    handleSubmit,
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  
+  // Google Login
+ 
   const handleGoogleLoginResponse = async (response) => {
-    setError('');
     setLoading(true);
+    setError("");
+
     try {
       const res = await authService.loginWithGoogle(response.credential);
+
       const { token, user: userData } = res.data;
 
-      if (userData.role?.toLowerCase() !== 'employee') {
-        setError('This portal is for employees only. Please use the Admin panel.');
-        setLoading(false);
+      if (userData.role.toLowerCase() !== "employee") {
+        setError(
+          "This portal is for employees only. Please use the Admin panel."
+        );
         return;
       }
 
       login(token, userData);
-      navigate('/dashboard', { replace: true });
+
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -47,167 +77,228 @@ const Login = () => {
     }
   };
 
+ 
+
   useEffect(() => {
-    let interval;
-    const initializeGoogleSignIn = () => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleGoogleLoginResponse,
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-login-btn'),
-          {
-            theme: 'outline',
-            size: 'large',
-            width: 320, // fixed pixel width for optimal card alignment
-            text: 'signin_with',
-            shape: 'rectangular',
-          }
-        );
-      }
+    const loadGoogle = () => {
+      if (!window.google) return;
+
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleGoogleLoginResponse,
+      });
+
+      window.google.accounts.id.renderButton(
+        document.getElementById("google-login-btn"),
+        {
+          theme: "outline",
+          size: "large",
+          width: 340,
+          text: "signin_with",
+          shape: "pill",
+        }
+      );
     };
 
     if (window.google) {
-      initializeGoogleSignIn();
+      loadGoogle();
     } else {
-      interval = setInterval(() => {
+      const interval = setInterval(() => {
         if (window.google) {
-          initializeGoogleSignIn();
+          loadGoogle();
           clearInterval(interval);
         }
       }, 100);
-    }
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+      return () => clearInterval(interval);
+    }
   }, []);
 
-  useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
 
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", {
+        replace: true,
+      });
+    }
+  }, [user]);
+
+  
   const onSubmit = async ({ email, password }) => {
-    setError('');
     setLoading(true);
+    setError("");
+
     try {
       const res = await authService.login(email, password);
+
       const { token, user: userData } = res.data;
 
-      // This portal is for employees only — management roles belong in the Admin app.
-      if (userData.role?.toLowerCase() !== 'employee') {
-        setError('This portal is for employees only. Please use the Admin panel.');
-        setLoading(false);
+      if (userData.role.toLowerCase() !== "employee") {
+        setError(
+          "This portal is for employees only. Please use the Admin panel."
+        );
         return;
       }
 
       login(token, userData);
-      navigate('/dashboard', { replace: true });
+
+      navigate("/dashboard", {
+        replace: true,
+      });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: colors.navy,
-        backgroundImage: `radial-gradient(circle at 15% 20%, ${colors.navyDeep} 0%, ${colors.navy} 55%)`,
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg,#0f172a,#1e293b,#334155)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
         p: 2,
       }}
     >
-      <Card sx={{ maxWidth: 400, width: '100%', borderRadius: 4, overflow: 'hidden' }}>
-        <Box sx={{ bgcolor: colors.navy, px: 4, py: 3.5, position: 'relative' }}>
-          <Box sx={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', bgcolor: colors.amber }} />
-          <Typography sx={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: 22, color: '#fff' }}>
-            EMS
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.25 }}>
-            Employee Portal
-          </Typography>
-        </Box>
+      <Card
+        elevation={10}
+        sx={{
+          width: 430,
+          
+          p: 4,
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        <Typography
+          variant="h4"
+          align="center"
+          fontWeight="bold"
+        >
+          EMS
+        </Typography>
 
-        <Box sx={{ p: 4 }}>
-          <Typography variant="h6" sx={{ mb: 0.5 }}>Sign in</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-            Use your work email and password.
-          </Typography>
+        <Typography
+          align="center"
+          color="text.secondary"
+          sx={{ mt: 1 }}
+        >
+          Employee Management System
+        </Typography>
 
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        <Typography
+          variant="h5"
+          align="center"
+          sx={{
+            mt: 4,
+            fontWeight: 700,
+          }}
+        >
+          
+        </Typography>
 
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <CustomInput
-              name="email"
-              control={control}
-              label="Work email"
-              type="email"
-              rules={{ required: 'Email is required', pattern: emailPattern }}
-              startIcon={<MailOutlineRoundedIcon fontSize="small" />}
-              autoFocus
-            />
-            <CustomInput
-              name="password"
-              control={control}
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              rules={{ required: 'Password is required' }}
-              startIcon={<LockOutlineRoundedIcon fontSize="small" />}
-              endAdornment={
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setShowPassword((v) => !v)} edge="end">
-                    {showPassword ? <VisibilityOffRoundedIcon fontSize="small" /> : <VisibilityRoundedIcon fontSize="small" />}
-                  </IconButton>
-                </InputAdornment>
-              }
-            />
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -0.5, mb: 1 }}>
-              <Link
-                component={RouterLink}
-                to="/forgot-password"
-                variant="body2"
-                sx={{
-                  color: colors.amber,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  '&:hover': { textDecoration: 'underline' }
-                }}
-              >
-                Forgot Password?
-              </Link>
-            </Box>
-            <CustomButton type="submit" fullWidth loading={loading} sx={{ mt: 2.5, py: 1.25 }}>
-              Sign in
-            </CustomButton>
+        <Typography
+          align="center"
+          color="text.secondary"
+          sx={{ mb: 4 }}
+        >
+          Login to continue
+        </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', my: 2.5 }}>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
-              <Typography variant="caption" sx={{ mx: 2, color: 'text.secondary', fontWeight: 500 }}>
-                OR
-              </Typography>
-              <Box sx={{ flex: 1, height: '1px', bgcolor: colors.line }} />
-            </Box>
+        {error && (
+          <Alert
+            severity="error"
+            sx={{ mb: 3 }}
+          >
+            {error}
+          </Alert>
+        )}
 
-            <Box
-              id="google-login-btn"
-              sx={{
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                minHeight: '40px',
-                '& iframe': {
-                  margin: '0 auto',
-                }
-              }}
-            />
-          </form>
-        </Box>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <CustomInput
+            name="email"
+            control={control}
+            label="Email"
+            type="email"
+            rules={{
+              required: "Email is required",
+              pattern: emailPattern,
+            }}
+            startIcon={<MailOutlineRoundedIcon />}
+          />
+
+          <CustomInput
+            name="password"
+            control={control}
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            rules={{
+              required: "Password is required",
+            }}
+            startIcon={<LockOutlineRoundedIcon />}
+            endAdornment={
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() =>
+                    setShowPassword(!showPassword)
+                  }
+                >
+                  {showPassword ? (
+                    <VisibilityOffRoundedIcon />
+                  ) : (
+                    <VisibilityRoundedIcon />
+                  )}
+                </IconButton>
+              </InputAdornment>
+            }
+          />
+
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            mt={1}
+          >
+            <Link
+              component={RouterLink}
+              to="/forgot-password"
+              underline="hover"
+            >
+              Forgot Password?
+            </Link>
+          </Box>
+
+          <CustomButton
+            fullWidth
+            type="submit"
+            loading={loading}
+            sx={{
+              mt: 3,
+              py: 1.4,
+              borderRadius: 3,
+              fontSize: 16,
+            }}
+          >
+            Sign In
+          </CustomButton>
+
+          <Divider sx={{ my: 4 }}>
+            <Typography variant="body2">
+              OR
+            </Typography>
+          </Divider>
+
+          <Box
+            display="flex"
+            justifyContent="center"
+          >
+            <Box id="google-login-btn"></Box>
+          </Box>
+        </form>
       </Card>
     </Box>
   );
