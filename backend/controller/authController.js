@@ -22,11 +22,11 @@ export const loginEmployee = async (req, res) => {
         }
 
       
-        const [users] = await db.query(
-            `SELECT e.*, r.role_name FROM employees e 
-             INNER JOIN roles r ON e.role_id = r.id 
-             WHERE e.email = ?`, [email]
+        const [rows] = await db.query(
+            "CALL SP_GetEmployeeByEmail(?)",
+            [email]
         );
+        const users = rows[0];
 
         if (users.length === 0) {
             return res.status(400).json({ success: false, message: "Invalid Email or Password!" });
@@ -59,7 +59,8 @@ export const loginEmployee = async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role_name
+                role: user.role_name,
+                department: user.department_name
             }
         });
 
@@ -222,12 +223,11 @@ export const loginWithGoogle = async (req, res) => {
         }
 
        
-        const [users] = await db.query(
-            `SELECT e.*, r.role_name FROM employees e
-             INNER JOIN roles r ON e.role_id = r.id
-             WHERE e.email = ? AND e.status = 1`,
+        const [rows] = await db.query(
+            "CALL SP_GetEmployeeByEmail(?)",
             [payload.email]
         );
+        const users = rows[0];
 
         if (users.length === 0) {
             return res.status(404).json({
@@ -237,6 +237,10 @@ export const loginWithGoogle = async (req, res) => {
         }
 
         const user = users[0];
+
+        if (user.status === 0) {
+            return res.status(403).json({ success: false, message: "Your account has been deactivated. Please contact your administrator." });
+        }
 
         const token = jwt.sign(
             { id: user.id, role: user.role_name },
@@ -252,7 +256,8 @@ export const loginWithGoogle = async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role_name
+                role: user.role_name,
+                department: user.department_name
             }
         });
 

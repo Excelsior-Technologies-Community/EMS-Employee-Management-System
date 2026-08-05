@@ -1,5 +1,6 @@
 import db from '../config/db.js'
-//creat department 
+
+//create department 
 export const addDepartment = async (req, res) => {
     try {
         const { department_name, description } = req.body
@@ -12,10 +13,11 @@ export const addDepartment = async (req, res) => {
         }
 
         // Check if department already exists
-        const [existing] = await db.query(
-            "SELECT * FROM departments WHERE department_name = ?",
+        const [rows] = await db.query(
+            "CALL SP_GetDepartmentByName(?)",
             [department_name]
         );
+        const existing = rows[0];
 
         if (existing.length > 0) {
             return res.status(400).json({
@@ -24,9 +26,9 @@ export const addDepartment = async (req, res) => {
             });
         }
 
-        // Insert directly — raw query (consistent with updateDepartment/deleteDepartment)
+        // Insert directly using stored procedure
         await db.query(
-            "INSERT INTO departments (department_name, description) VALUES (?, ?)",
+            "CALL SP_AddDepartment(?, ?)",
             [department_name, description]
         );
 
@@ -47,14 +49,10 @@ export const addDepartment = async (req, res) => {
 // get alldepartments
 export const getAllDepartments = async (req, res) => {
     try {
-        const [rows] = await db.query(
-            `SELECT d.id ,d.department_name ,d.description
-            FROM departments d
-            `
-        );
+        const [rows] = await db.query("CALL SP_GetAllDepartments()");
         return res.status(200).json({
             success: true,
-            data: rows
+            data: rows[0]
         });
 
     } catch (error) {
@@ -70,9 +68,10 @@ export const getDepartmentById = async (req, res) => {
     try {
         const { id } = req.params;
         const [rows] = await db.query(
-            "SELECT d.id, d.department_name ,d.description FROM departments d WHERE id = ?", [id]
+            "CALL SP_GetDepartmentById(?)", [id]
         );
-        if (rows.length == 0) {
+        const depts = rows[0];
+        if (depts.length == 0) {
             return res.status(404).json({
                 success: false,
                 message: "Department not found!"
@@ -80,7 +79,7 @@ export const getDepartmentById = async (req, res) => {
         }
         return res.status(200).json({
             success: true,
-            data: rows[0]
+            data: depts[0]
         })
 
     } catch (error) {
@@ -99,9 +98,10 @@ export const updateDepartment = async (req, res) => {
         const { id } = req.params
         const { department_name, description } = req.body
 
-        const [existing] = await db.query(
-            "SELECT * FROM departments WHERE id = ? ", [id]
+        const [rows] = await db.query(
+            "CALL SP_GetDepartmentById(?)", [id]
         );
+        const existing = rows[0];
         if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -110,8 +110,8 @@ export const updateDepartment = async (req, res) => {
 
         }
         await db.query(
-            "UPDATE departments SET department_name = ?,description = ? WHERE id = ?",
-            [department_name, description, id]
+            "CALL SP_UpdateDepartment(?, ?, ?)",
+            [id, department_name, description]
         );
         return res.status(200).json({
             success: true,
@@ -132,10 +132,11 @@ export const deleteDepartment = async (req, res) => {
     try {
         const { id } = req.params
 
-        const [existing] = await db.query(
-            "SELECT * FROM departments WHERE id = ?",
+        const [rows] = await db.query(
+            "CALL SP_GetDepartmentById(?)",
             [id]
         );
+        const existing = rows[0];
         if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -144,7 +145,7 @@ export const deleteDepartment = async (req, res) => {
 
         }
         await db.query(
-            "DELETE FROM departments WHERE id = ?", [id]
+            "CALL SP_DeleteDepartment(?)", [id]
         );
         return res.status(200).json({
             success: true,

@@ -3,10 +3,10 @@ import db from '../config/db.js';
 
 export const getAllRoles = async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT * FROM roles");
+        const [rows] = await db.query("CALL SP_GetAllRoles()");
         return res.status(200).json({
             success: true,
-            data: rows
+            data: rows[0]
         });
     } catch (error) {
         console.error("Error in getAllRoles:", error.message);
@@ -34,7 +34,8 @@ export const addRole = async (req, res) => {
         const trimmedRoleName = role_name.trim();
 
         // Check if role already exists
-        const [existing] = await db.query("SELECT * FROM roles WHERE role_name = ?", [trimmedRoleName]);
+        const [rows] = await db.query("CALL SP_GetRoleByName(?)", [trimmedRoleName]);
+        const existing = rows[0];
         if (existing.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -42,7 +43,7 @@ export const addRole = async (req, res) => {
             });
         }
 
-        await db.query("INSERT INTO roles (role_name) VALUES (?)", [trimmedRoleName]);
+        await db.query("CALL SP_AddRole(?)", [trimmedRoleName]);
 
         return res.status(201).json({
             success: true,

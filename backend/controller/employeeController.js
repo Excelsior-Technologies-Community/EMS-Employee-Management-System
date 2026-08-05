@@ -14,10 +14,11 @@ export const addEmployee = async (req, res) => {
         }
 
         // Validate unique email first
-        const [emailCheck] = await db.query(
-            "SELECT * FROM employees WHERE email = ?",
+        const [emailRows] = await db.query(
+            "CALL SP_GetEmployeeByEmail(?)",
             [email]
         );
+        const emailCheck = emailRows[0];
         if (emailCheck.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -26,10 +27,11 @@ export const addEmployee = async (req, res) => {
         }
 
         // Validate role_id exists
-        const [roleCheck] = await db.query(
-            "SELECT * FROM roles WHERE id = ?",
+        const [roleRows] = await db.query(
+            "CALL SP_GetRoleById(?)",
             [role_id]
         );
+        const roleCheck = roleRows[0];
         if (roleCheck.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -39,10 +41,11 @@ export const addEmployee = async (req, res) => {
 
         // Validate department_id exists (if provided)
         if (department_id) {
-            const [deptCheck] = await db.query(
-                "SELECT * FROM departments WHERE id = ?",
+            const [deptRows] = await db.query(
+                "CALL SP_GetDepartmentById(?)",
                 [department_id]
             );
+            const deptCheck = deptRows[0];
             if (deptCheck.length === 0) {
                 return res.status(400).json({
                     success: false,
@@ -55,9 +58,9 @@ export const addEmployee = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Insert directly — raw query (consistent pattern, no stored procedure dependency)
+        // Insert using stored procedure
         await db.query(
-            "INSERT INTO employees (name, email, password, role_id, department_id) VALUES (?, ?, ?, ?, ?)",
+            "CALL SP_AddEmployee(?, ?, ?, ?, ?)",
             [name, email, hashedPassword, role_id, department_id || null]
         );
 
@@ -83,31 +86,17 @@ export const getAllEmployees = async (req, res) => {
         const search = req.query.search ? `%${req.query.search}%` : null;
         const offset = (page - 1) * limit;
 
-        const baseWhere = search
-            ? "WHERE e.name LIKE ? OR e.email LIKE ? OR r.role_name LIKE ?"
-            : "";
-        const params = search ? [search, search, search] : [];
-
-        const [[{ total }]] = await db.query(
-            `SELECT COUNT(*) AS total
-             FROM employees e
-             LEFT JOIN roles r ON e.role_id = r.id
-             ${baseWhere}`,
-            params
+        const [countRows] = await db.query(
+            "CALL SP_GetEmployeesCount(?)",
+            [search]
         );
+        const total = countRows[0][0].total;
 
-        const [rows] = await db.query(
-            `SELECT e.id, e.name, e.email, e.role_id, r.role_name,
-                    e.department_id, d.department_name, d.description AS department_description,
-                    e.status
-             FROM employees e
-             LEFT JOIN roles r ON e.role_id = r.id
-             LEFT JOIN departments d ON e.department_id = d.id
-             ${baseWhere}
-             ORDER BY e.id ASC
-             LIMIT ? OFFSET ?`,
-            [...params, limit, offset]
+        const [listRows] = await db.query(
+            "CALL SP_GetAllEmployees(?, ?, ?)",
+            [search, limit, offset]
         );
+        const rows = listRows[0];
 
         res.status(200).json({
             success: true,
@@ -143,17 +132,12 @@ export const getEmployeeById = async (req, res) => {
         }
 
         const [rows] = await db.query(
-            `SELECT e.id, e.name, e.email, e.role_id, r.role_name, 
-                    e.department_id, d.department_name, d.description AS department_description,
-                    e.status
-             FROM employees e 
-             LEFT JOIN roles r ON e.role_id = r.id 
-             LEFT JOIN departments d ON e.department_id = d.id 
-             WHERE e.id = ?`,
+            "CALL SP_GetEmployeeById(?)",
             [targetId]
         );
+        const employees = rows[0];
 
-        if (rows.length === 0) {
+        if (employees.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Employee not found"
@@ -162,7 +146,7 @@ export const getEmployeeById = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            data: rows[0]
+            data: employees[0]
         });
     } catch (error) {
         console.error("Error in getEmployeeById: ", error.message);
@@ -189,7 +173,11 @@ export const updateEmployee = async (req, res) => {
         }
 
         // Fetch existing employee
-        const [existing] = await db.query("SELECT * FROM employees WHERE id = ?", [targetId]);
+        const [rows] = await db.query(
+            "CALL SP_GetEmployeeById(?)",
+            [targetId]
+        );
+        const existing = rows[0];
         if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -207,7 +195,11 @@ export const updateEmployee = async (req, res) => {
         let updatedRoleId = currentEmployee.role_id;
         if (role_id !== undefined) {
             if (currentUserRole === "Admin" || currentUserRole === "HR") {
-                const [roleCheck] = await db.query("SELECT * FROM roles WHERE id = ?", [role_id]);
+                const [roleRows] = await db.query(
+                    "CALL SP_GetRoleById(?)",
+                    [role_id]
+                );
+                const roleCheck = roleRows[0];
                 if (roleCheck.length === 0) {
                     return res.status(400).json({
                         success: false,
@@ -228,7 +220,11 @@ export const updateEmployee = async (req, res) => {
         if (department_id !== undefined) {
             if (currentUserRole === "Admin" || currentUserRole === "HR") {
                 if (department_id !== null && department_id !== "") {
-                    const [deptCheck] = await db.query("SELECT * FROM departments WHERE id = ?", [department_id]);
+                    const [deptRows] = await db.query(
+                        "CALL SP_GetDepartmentById(?)",
+                        [department_id]
+                    );
+                    const deptCheck = deptRows[0];
                     if (deptCheck.length === 0) {
                         return res.status(400).json({
                             success: false,
@@ -248,12 +244,13 @@ export const updateEmployee = async (req, res) => {
         }
 
         // Prevent duplicate email
-        const [duplicateEmail] = await db.query(
-            "SELECT * FROM employees WHERE email = ? AND id != ?",
-            [updatedEmail, targetId]
+        const [emailRows] = await db.query(
+            "CALL SP_GetEmployeeByEmail(?)",
+            [updatedEmail]
         );
+        const duplicateEmail = emailRows[0];
 
-        if (duplicateEmail.length > 0) {
+        if (duplicateEmail.length > 0 && duplicateEmail[0].id !== targetId) {
             return res.status(400).json({
                 success: false,
                 message: "Email already exists."
@@ -267,10 +264,10 @@ export const updateEmployee = async (req, res) => {
             updatedPassword = await bcrypt.hash(password, salt);
         }
 
-        // Update database
+        // Update database using stored procedure
         await db.query(
-            "UPDATE employees SET name = ?, email = ?, password = ?, role_id = ?, department_id = ? WHERE id = ?",
-            [updatedName, updatedEmail, updatedPassword, updatedRoleId, updatedDepartmentId, targetId]
+            "CALL SP_UpdateEmployee(?, ?, ?, ?, ?, ?)",
+            [targetId, updatedName, updatedEmail, updatedPassword, updatedRoleId, updatedDepartmentId]
         );
 
         return res.status(200).json({
@@ -291,7 +288,6 @@ export const deleteEmployee = async (req, res) => {
     try {
         const targetId = parseInt(req.params.id);
 
-
         if (req.user.role !== "Admin") {
             return res.status(403).json({
                 success: false,
@@ -299,7 +295,11 @@ export const deleteEmployee = async (req, res) => {
             });
         }
 
-        const [existing] = await db.query("SELECT * FROM employees WHERE id = ?", [targetId]);
+        const [rows] = await db.query(
+            "CALL SP_GetEmployeeById(?)",
+            [targetId]
+        );
+        const existing = rows[0];
         if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -307,7 +307,10 @@ export const deleteEmployee = async (req, res) => {
             });
         }
 
-        await db.query("DELETE FROM employees WHERE id = ?", [targetId]);
+        await db.query(
+            "CALL SP_DeleteEmployee(?)",
+            [targetId]
+        );
 
         res.status(200).json({
             success: true,
@@ -322,7 +325,6 @@ export const deleteEmployee = async (req, res) => {
     }
 };
 
-
 // Toggle employee active/inactive status
 export const toggleEmployeeStatus = async (req, res) => {
     try {
@@ -336,7 +338,11 @@ export const toggleEmployeeStatus = async (req, res) => {
             });
         }
 
-        const [existing] = await db.query("SELECT * FROM employees WHERE id = ?", [targetId]);
+        const [rows] = await db.query(
+            "CALL SP_GetEmployeeById(?)",
+            [targetId]
+        );
+        const existing = rows[0];
         if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -345,8 +351,8 @@ export const toggleEmployeeStatus = async (req, res) => {
         }
 
         await db.query(
-            "UPDATE employees SET status = ?, updated_by = ? WHERE id = ?",
-            [status, req.user.id, targetId]
+            "CALL SP_ToggleEmployeeStatus(?, ?, ?)",
+            [targetId, status, req.user.id]
         );
 
         return res.status(200).json({
