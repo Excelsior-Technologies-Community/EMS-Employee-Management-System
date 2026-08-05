@@ -41,8 +41,16 @@ export const AuthProvider = ({ children }) => {
   const hasRole = (...allowed) =>
     !!user?.role && allowed.map((r) => r.toLowerCase()).includes(user.role.toLowerCase());
 
+  const updateUserData = (partial) => {
+    setUser((prev) => {
+      const next = { ...prev, ...partial };
+      localStorage.setItem('ems_admin_user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasRole }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasRole, updateUserData }}>
       {children}
     </AuthContext.Provider>
   );

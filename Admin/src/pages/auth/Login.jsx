@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate ,  Link as RouterLink  } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Box, Card, Typography, Alert, InputAdornment, IconButton, Link
+  Box, Card, Typography, Alert, InputAdornment, IconButton, Link ,Divider
 } from '@mui/material';
 import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded';
 import LockOutlineRoundedIcon from '@mui/icons-material/LockOutlineRounded';
@@ -272,32 +272,15 @@ const Login = () => {
           Sign In
         </CustomButton>
 
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            my: 4,
-          }}
-        >
-          <Box sx={{ flex: 1, height: 1, bgcolor: "divider" }} />
+       <Divider sx={{ my: 4 }}>
+            <Typography variant="body2">
+              OR
+            </Typography>
+        </Divider>
 
-          <Typography
-            variant="body2"
-            sx={{
-              mx: 2,
-              color: "text.secondary",
-            }}
-          >
-            OR
-          </Typography>
-
-          <Box sx={{ flex: 1, height: 1, bgcolor: "divider" }} />
-        </Box>
-
-        <Box
+          <Box
             display="flex"
             justifyContent="center"
-            
           >
             <Box id="google-login-btn"></Box>
           </Box>

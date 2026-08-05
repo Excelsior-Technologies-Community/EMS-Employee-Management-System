@@ -2,12 +2,14 @@ import { useState } from 'react';
 import {
   AppBar, Toolbar, Typography, IconButton, Drawer, Box,
   Avatar, Tooltip, Divider, List, ListItemButton, ListItemIcon, ListItemText,
+  Menu, MenuItem,
 } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import BadgeRoundedIcon from '@mui/icons-material/BadgeRounded';
 import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { colors, getAvatarGradient } from '../theme/colors';
@@ -23,6 +25,7 @@ const navItems = [
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -124,16 +127,55 @@ const Navbar = () => {
           <Typography sx={{ flexGrow: 1, fontWeight: 600, fontSize: 15 }}>
             {navItems.find((n) => n.path === location.pathname)?.label || 'Employee Portal'}
           </Typography>
-          <Tooltip title={user?.name || ''}>
-            <Avatar
-              sx={{
-                width: 36, height: 36, fontSize: 14, fontWeight: 700,
-                background: getAvatarGradient(user?.name || ''),
-              }}
-            >
-              {getInitials(user?.name)}
-            </Avatar>
+          <Tooltip title="Account">
+            <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small" sx={{ p: 0 }}>
+              <Avatar
+                sx={{
+                  width: 36, height: 36, fontSize: 14, fontWeight: 700,
+                  background: getAvatarGradient(user?.name || ''),
+                }}
+              >
+                {getInitials(user?.name)}
+              </Avatar>
+            </IconButton>
           </Tooltip>
+
+          <Menu
+            anchorEl={anchorEl}
+            open={!!anchorEl}
+            onClose={() => setAnchorEl(null)}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <Box sx={{ px: 2, py: 1.25, minWidth: 180 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 14 }} noWrap>
+                {user?.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {user?.email}
+              </Typography>
+            </Box>
+            <Divider />
+            <MenuItem onClick={() => { setAnchorEl(null); navigate('/profile'); }}>
+              <ListItemIcon>
+                <PersonRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>My Profile</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { setAnchorEl(null); navigate('/change-password'); }}>
+              <ListItemIcon>
+                <LockResetRoundedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Reset Password</ListItemText>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => { setAnchorEl(null); handleLogout(); }} sx={{ color: 'error.main' }}>
+              <ListItemIcon>
+                <LogoutRoundedIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText>Logout</ListItemText>
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 

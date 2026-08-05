@@ -3,10 +3,13 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import WorkRoundedIcon from '@mui/icons-material/WorkRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/common/PageHeader';
 import CustomButton from '../../components/common/CustomButton';
 import { useAuth } from '../../context/AuthContext';
+import { useFetch } from '../../hooks/useFetch';
+import { employeeService } from '../../services/employeeService';
 import { colors, getAvatarGradient, roleTone } from '../../theme/colors';
 import { getInitials } from '../../utils/validators';
 
@@ -25,7 +28,9 @@ const InfoRow = ({ icon, label, value }) => (
 const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const tone = roleTone[user?.role?.toLowerCase()] || roleTone.employee;
+  const { data: res } = useFetch(() => employeeService.getById(user.id), [user.id]);
+  const employee = res?.data || user;
+  const tone = roleTone[employee?.role_name?.toLowerCase() || employee?.role?.toLowerCase()] || roleTone.employee;
 
   return (
     <Box>
@@ -33,25 +38,34 @@ const Profile = () => {
         title="My Profile"
         crumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'Profile' }]}
         action={
-          <CustomButton
-            variant="outlined"
-            startIcon={<LockResetRoundedIcon fontSize="small" />}
-            onClick={() => navigate('/change-password')}
-          >
-            Change Password
-          </CustomButton>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <CustomButton
+              variant="outlined"
+              startIcon={<EditRoundedIcon fontSize="small" />}
+              onClick={() => navigate('/profile/edit')}
+            >
+              Edit Profile
+            </CustomButton>
+            <CustomButton
+              variant="outlined"
+              startIcon={<LockResetRoundedIcon fontSize="small" />}
+              onClick={() => navigate('/change-password')}
+            >
+              Change Password
+            </CustomButton>
+          </Box>
         }
       />
 
       <Card sx={{ p: 3.5, mb: 3, maxWidth: 520 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-          <Avatar sx={{ width: 72, height: 72, fontSize: 28, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', background: getAvatarGradient(user?.name || '') }}>
-            {getInitials(user?.name)}
+          <Avatar sx={{ width: 72, height: 72, fontSize: 28, fontWeight: 700, fontFamily: '"Space Grotesk", sans-serif', background: getAvatarGradient(employee?.name || '') }}>
+            {getInitials(employee?.name)}
           </Avatar>
           <Box>
-            <Typography variant="h6">{user?.name}</Typography>
-            <Typography variant="body2" color="text.secondary">{user?.email}</Typography>
-            <Chip label={user?.role} size="small" sx={{ mt: 1, color: tone.fg, bgcolor: tone.bg, fontWeight: 700 }} />
+            <Typography variant="h6">{employee?.name}</Typography>
+            <Typography variant="body2" color="text.secondary">{employee?.email}</Typography>
+            <Chip label={employee?.role_name || employee?.role} size="small" sx={{ mt: 1, color: tone.fg, bgcolor: tone.bg, fontWeight: 700 }} />
           </Box>
         </Box>
       </Card>
@@ -59,11 +73,11 @@ const Profile = () => {
       <Card sx={{ p: 3.5, maxWidth: 520 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>Account Details</Typography>
         <Divider sx={{ mb: 0.5 }} />
-        <InfoRow icon={<EmailRoundedIcon fontSize="small" />} label="Email" value={user?.email} />
+        <InfoRow icon={<EmailRoundedIcon fontSize="small" />} label="Email" value={employee?.email} />
         <Divider sx={{ opacity: 0.5 }} />
-        <InfoRow icon={<WorkRoundedIcon fontSize="small" />} label="Role" value={user?.role} />
+        <InfoRow icon={<WorkRoundedIcon fontSize="small" />} label="Role" value={employee?.role_name || employee?.role} />
         <Divider sx={{ opacity: 0.5 }} />
-        <InfoRow icon={<BusinessRoundedIcon fontSize="small" />} label="Department" value={user?.department} />
+        <InfoRow icon={<BusinessRoundedIcon fontSize="small" />} label="Department" value={employee?.department_name || employee?.department} />
       </Card>
     </Box>
   );

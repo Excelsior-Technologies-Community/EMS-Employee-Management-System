@@ -8,6 +8,7 @@ import EmployeeList from '../pages/employees/EmployeeList';
 import DepartmentList from '../pages/departments/DepartmentList';
 import RoleList from '../pages/roles/RoleList';
 import Profile from '../pages/profile/Profile';
+import EditProfile from '../pages/profile/EditProfile';
 import ChangePassword from '../pages/profile/ChangePassword';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 const withLayout = (page, roles) => (
@@ -26,6 +27,7 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={withLayout(<Dashboard />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/employees" element={withLayout(<EmployeeList />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile" element={withLayout(<Profile />, ['Admin', 'HR', 'Manager'])} />
+    <Route path="/profile/edit" element={withLayout(<EditProfile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/change-password" element={withLayout(<ChangePassword />, ['Admin', 'HR', 'Manager'])} />
 
     {/* Admin only */}

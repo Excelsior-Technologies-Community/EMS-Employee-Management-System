@@ -19,7 +19,7 @@ const RoleList = () => {
   const [addOpen, setAddOpen] = useState(false);
 
   const columns = [
-    { key: 'id', label: '#', render: (row) => `#${row.id}` },
+    { key: 'id', label: '#', render: (row) => row.id },
     { key: 'role_name', label: 'Role', render: (row) => <RoleBadge role={row.role_name} /> },
   ];
 

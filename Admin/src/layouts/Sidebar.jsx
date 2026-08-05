@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { label: 'Employees', icon: <GroupRoundedIcon />, path: '/employees', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Departments', icon: <ApartmentRoundedIcon />, path: '/departments', roles: ['Admin'] },
   { label: 'Roles', icon: <AdminPanelSettingsRoundedIcon />, path: '/roles', roles: ['Admin'] },
-  { label: 'Profile', icon: <PersonRoundedIcon />, path: '/profile', roles: ['Admin', 'HR', 'Manager'] },
+
 ];
 
 const Sidebar = ({ onNavigate }) => {

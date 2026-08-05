@@ -258,10 +258,16 @@ export const updateEmployee = async (req, res) => {
         }
 
         // Determine password
-        let updatedPassword = currentEmployee.password;
+        let updatedPassword;
         if (password) {
             const salt = await bcrypt.genSalt(10);
             updatedPassword = await bcrypt.hash(password, salt);
+        } else {
+            const [passRows] = await db.query(
+                "SELECT password FROM employees WHERE id = ?",
+                [targetId]
+            );
+            updatedPassword = passRows[0]?.password;
         }
 
         // Update database using stored procedure

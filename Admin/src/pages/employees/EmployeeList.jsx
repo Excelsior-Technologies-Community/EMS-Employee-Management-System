@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Box, IconButton, Tooltip, Switch } from '@mui/material';
+import { useState, useMemo } from 'react';
+import { Box, IconButton, Tooltip, Switch, Chip, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFetch } from '../../hooks/useFetch';
 import { employeeService } from '../../services/employeeService';
 import { getErrorMessage } from '../../services/api';
+import { statusTone } from '../../theme/colors';
 
 const EmployeeList = () => {
   const { hasRole } = useAuth();
@@ -27,7 +28,14 @@ const EmployeeList = () => {
   const { data: res, loading, refetch } = useFetch(() => employeeService.getAll({ limit: 1000 }), []);
   const employees = res?.data || [];
 
+  const [statusFilter, setStatusFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
+
+  const filteredEmployees = useMemo(() => {
+    if (statusFilter === 'all') return employees;
+    const targetStatus = statusFilter === 'active' ? 1 : 0;
+    return employees.filter(emp => emp.status === targetStatus);
+  }, [employees, statusFilter]);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -66,12 +74,13 @@ const EmployeeList = () => {
     { key: 'email', label: 'Email', sx: { display: { xs: 'none', md: 'table-cell' } } },
     { key: 'role_name', label: 'Role', render: (row) => <RoleBadge role={row.role_name} />, sx: { display: { xs: 'none', sm: 'table-cell' } } },
     { key: 'department_name', label: 'Department', render: (row) => <DepartmentAvatar name={row.department_name} size={26} />, sx: { display: { xs: 'none', sm: 'table-cell' } } },
-    ...(canToggleStatus
-      ? [{
-          key: 'status',
-          label: 'Status',
-          sortable: false,
-          render: (row) => (
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: false,
+      render: (row) => {
+        if (canToggleStatus) {
+          return (
             <Switch
               size="small"
               color="success"
@@ -79,9 +88,19 @@ const EmployeeList = () => {
               disabled={togglingId === row.id}
               onChange={() => handleToggleStatus(row)}
             />
-          ),
-        }]
-      : []),
+          );
+        } else {
+          const tone = row.status === 1 ? statusTone.active : statusTone.inactive;
+          return (
+            <Chip
+              label={tone.label}
+              size="small"
+              sx={{ color: tone.fg, bgcolor: tone.bg, fontSize: 11.5, height: 22, fontWeight: 600 }}
+            />
+          );
+        }
+      },
+    },
     ...((canEdit || canDelete)
       ? [{
           key: 'actions',
@@ -123,11 +142,27 @@ const EmployeeList = () => {
 
       <DataTable
         columns={columns}
-        rows={employees}
+        rows={filteredEmployees}
         loading={loading}
         searchKeys={['name', 'email', 'role_name', 'department_name']}
         searchPlaceholder="Search by name, email, or role..."
         emptyLabel="No employees found."
+        toolbarAction={
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="status-filter-label">Filter by Status</InputLabel>
+            <Select
+              labelId="status-filter-label"
+              id="status-filter"
+              value={statusFilter}
+              label="Filter by Status"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="all">All Statuses</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+        }
       />
 
       <AddEmployee open={addOpen} onClose={() => setAddOpen(false)} onSuccess={refetch} />

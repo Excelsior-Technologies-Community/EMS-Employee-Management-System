@@ -1,12 +1,12 @@
 import express from "express";
 import { body, validationResult } from 'express-validator';
-import { 
-    addEmployee, 
-    getAllEmployees, 
-    getEmployeeById, 
-    updateEmployee, 
-    deleteEmployee ,
-    toggleEmployeeStatus 
+import {
+    addEmployee,
+    getAllEmployees,
+    getEmployeeById,
+    updateEmployee,
+    deleteEmployee,
+    toggleEmployeeStatus
 } from "../controller/employeeController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
