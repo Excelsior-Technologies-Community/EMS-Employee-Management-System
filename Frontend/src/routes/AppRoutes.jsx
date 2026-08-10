@@ -7,6 +7,7 @@ import Dashboard from '../pages/dashboard/Dashboard';
 import MyProfile from '../pages/profile/MyProfile';
 import EditProfile from '../pages/profile/EditProfile';
 import ChangePassword from '../pages/profile/ChangePassword';
+import Attendance from '../pages/attendance/Attendance';
 
 const withLayout = (page) => (
   <ProtectedRoute>
@@ -20,6 +21,7 @@ const AppRoutes = () => (
     <Route path="/forgot-password" element={<ForgotPassword />} />
 
     <Route path="/dashboard" element={withLayout(<Dashboard />)} />
+    <Route path="/attendance" element={withLayout(<Attendance />)} />
     <Route path="/profile" element={withLayout(<MyProfile />)} />
     <Route path="/profile/edit" element={withLayout(<EditProfile />)} />
     <Route path="/change-password" element={withLayout(<ChangePassword />)} />

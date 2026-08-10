@@ -5,7 +5,7 @@ USE EMS;
 -- 1. ROLES
 -- =========================================================================
 
--- Roles Table
+
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL UNIQUE,
@@ -171,7 +171,7 @@ ALTER TABLE employees ADD CONSTRAINT uq_employees_email UNIQUE (email);
 -- Employees Stored Procedures
 DELIMITER $$
 CREATE PROCEDURE SP_AddEmployee(
-    IN p_name VARCHAR(100),
+    IN p_name VARCHAR(100), 
     IN p_email VARCHAR(100),
     IN p_password VARCHAR(255),
     IN p_role_id INT,
@@ -376,3 +376,126 @@ BEGIN
     SELECT ROW_COUNT() AS affected_rows;
 END $$
 DELIMITER ;
+
+
+CREATE TABLE office_location(
+id INT AUTO_INCREMENT PRIMARY KEY,
+office_name varchar(200),
+latitude DECIMAL(10,8),
+longitude DECIMAL(11,8),
+radius INT DEFAULT 500,
+status TINYINT(1) DEFAULT 1 ,
+created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+); 
+
+INSERT INTO office_location(
+office_name, latitude, longitude, radius
+)
+VALUES(
+"Excelsior Technologies",
+23.0475,
+72.5028,
+500);
+
+CREATE TABLE attendance
+(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employee_id INT NOT NULL,
+    attendance_date DATE NOT NULL,
+    check_in DATETIME NULL,
+    check_out DATETIME NULL,
+    check_in_latitude DECIMAL(10,8),
+    check_in_longitude DECIMAL(11,8),
+    check_out_latitude DECIMAL(10,8),
+    check_out_longitude DECIMAL(11,8),
+    check_in_accuracy DECIMAL(10,2),
+    check_out_accuracy DECIMAL(10,2),
+    work_hours DECIMAL(5,2),
+    remarks VARCHAR(255),
+
+    status ENUM(
+        'Present',
+        'Absent',
+        'Late',
+        'Half Day'
+    ) DEFAULT 'Present',
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY(employee_id)
+    REFERENCES employees(id)
+);
+
+-- check in store procedure 
+
+DELIMITER $$
+CREATE PROCEDURE SP_CheckIn(
+IN p_employee_id INT ,
+IN p_latitude DECIMAL (10,8),
+IN p_longitude DECIMAL (11,8),
+IN p_accuracy DECIMAL(10,2)
+)
+BEGIN
+IF EXISTS
+(
+SELECT 1
+FROM attendance
+WHERE employee_id = p_employee_id
+AND attendance_date = CURDATE()
+)
+THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT='Already Checked In';
+
+ELSE
+INSERT INTO attendance(
+employee_id,
+attendance_date,
+check_in,
+check_in_latitude,
+check_in_longitude,
+check_in_accuracy
+)
+VALUES(
+p_employee_id,
+CURDATE(),
+NOW(),
+p_latitude,
+p_longitude,
+p_accuracy
+);
+END IF;
+
+END $$
+DELIMITER ;
+
+
+-- check out store procedure 
+
+ DELIMITER $$
+CREATE PROCEDURE SP_CheckOut
+(
+    IN p_employee_id INT,
+    IN p_latitude DECIMAL(10,8),
+    IN p_longitude DECIMAL(11,8),
+    IN p_accuracy DECIMAL(10,2)
+)
+BEGIN
+
+UPDATE attendance
+SET
+check_out = NOW(),
+check_out_latitude = p_latitude,
+check_out_longitude = p_longitude,
+check_out_accuracy = p_accuracy,
+work_hours = ROUND(
+TIMESTAMPDIFF(MINUTE,check_in,NOW())/60,
+2)
+
+WHERE employee_id=p_employee_id
+AND attendance_date=CURDATE();
+END $$
+
+DELIMITER ;
+
+select * from employees;
