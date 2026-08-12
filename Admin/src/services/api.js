@@ -4,7 +4,7 @@ import axios from 'axios';
 // utils/mockData.js). This instance is here so switching each service
 // function over to real endpoints later is a small, contained change.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 10000,
 });
 api.interceptors.request.use((config) => {

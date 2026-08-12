@@ -32,4 +32,12 @@ export const attendanceService = {
    */
   getMyHistory: (from, to) =>
     api.get('/attendance/my', { params: { from, to } }),
+
+  /**
+   * Fetch personal monthly attendance report summary
+   * @param {number} month 
+   * @param {number} year 
+   */
+  getMonthlyReport: (month, year) =>
+    api.get('/attendance/monthly-report', { params: { month, year } }),
 };

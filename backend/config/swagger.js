@@ -11,8 +11,12 @@ const options = {
     },
     servers: [
       {
+        url: '/',
+        description: 'Dynamic host (resolved automatically)',
+      },
+      {
         url: 'http://localhost:5000',
-        description: 'Development server',
+        description: 'Localhost',
       },
     ],
     components: {

@@ -1,6 +1,16 @@
 import express from "express";
-import { CheckIn, CheckOut, getAttendanceStatus, getMyAttendanceHistory } from "../controller/attendanceController.js";
+import { 
+    CheckIn, 
+    CheckOut, 
+    getAttendanceStatus, 
+    getMyAttendanceHistory,
+    getMonthlyReport,
+    getMonthlyReportAll,
+    getAllAttendance,
+    saveAttendanceManual
+} from "../controller/attendanceController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
@@ -220,5 +230,171 @@ router.post("/check-out", verifyToken, CheckOut);
  */
 router.get("/status", verifyToken, getAttendanceStatus);
 router.get("/my", verifyToken, getMyAttendanceHistory);
+
+/**
+ * @swagger
+ * /api/attendance/monthly-report:
+ *   get:
+ *     summary: Retrieve monthly attendance report for self
+ *     description: Returns the daily breakdown and summary of attendance for the logged-in employee for a given month and year.
+ *     tags: [Attendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Month number (1-12). Defaults to current month.
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Four-digit year. Defaults to current year.
+ *     responses:
+ *       200:
+ *         description: Monthly attendance report retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Monthly attendance report retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         workingDays:
+ *                           type: integer
+ *                           example: 22
+ *                         presentDays:
+ *                           type: integer
+ *                           example: 20
+ *                         lateDays:
+ *                           type: integer
+ *                           example: 1
+ *                         halfDays:
+ *                           type: integer
+ *                           example: 1
+ *                         absentDays:
+ *                           type: integer
+ *                           example: 0
+ *                         totalWorkHours:
+ *                           type: number
+ *                           example: 172.5
+ *                     breakdown:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           attendance_date:
+ *                             type: string
+ *                             format: date
+ *                             example: "2026-08-03"
+ *                           check_in:
+ *                             type: string
+ *                             format: date-time
+ *                           check_out:
+ *                             type: string
+ *                             format: date-time
+ *                           status:
+ *                             type: string
+ *                             example: Present
+ *                           work_hours:
+ *                             type: number
+ *                           remarks:
+ *                             type: string
+ *       400:
+ *         description: Invalid month or year query parameters
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/monthly-report", verifyToken, getMonthlyReport);
+
+/**
+ * @swagger
+ * /api/attendance/monthly-report/all:
+ *   get:
+ *     summary: Retrieve monthly attendance report for all active employees
+ *     description: Aggregated monthly report summary per active employee. Accessible by Admin, HR, and Manager roles.
+ *     tags: [Attendance]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Month number (1-12). Defaults to current month.
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Four-digit year. Defaults to current year.
+ *       - in: query
+ *         name: department_id
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Filter results by department.
+ *     responses:
+ *       200:
+ *         description: All employees monthly attendance report retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: All employees monthly report retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                       email:
+ *                         type: string
+ *                       department_name:
+ *                         type: string
+ *                       present_days:
+ *                         type: integer
+ *                       late_days:
+ *                         type: integer
+ *                       half_days:
+ *                         type: integer
+ *                       marked_days:
+ *                         type: integer
+ *                       total_work_hours:
+ *                         type: number
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access Denied
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/monthly-report/all", verifyToken, authorizeRoles("Admin", "HR", "Manager"), getMonthlyReportAll);
+
+router.get("/", verifyToken, authorizeRoles("Admin", "HR", "Manager"), getAllAttendance);
+router.post("/manual", verifyToken, authorizeRoles("Admin", "HR"), saveAttendanceManual);
 
 export default router;

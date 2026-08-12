@@ -12,6 +12,7 @@ import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import CheckInOutSheet from '../../components/attendance/CheckInOutSheet';
 import { attendanceService } from '../../services/attendanceService';
 import { colors } from '../../theme/colors';
+import { getAttendanceStatusTone } from '../../utils/attendanceStatus';
 
 const Attendance = () => {
   const [todayRecord, setTodayRecord] = useState(null);
@@ -19,6 +20,7 @@ const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetAction, setSheetAction] = useState('check-in'); // 'check-in' | 'check-out'
+  const [monthlySummary, setMonthlySummary] = useState(null);
 
   const fetchTodayStatus = async () => {
     try {
@@ -46,9 +48,20 @@ const Attendance = () => {
     }
   };
 
+  const fetchMonthlyReport = async () => {
+    try {
+      const res = await attendanceService.getMonthlyReport();
+      if (res.data?.success && res.data?.data?.summary) {
+        setMonthlySummary(res.data.data.summary);
+      }
+    } catch (err) {
+      console.error('Error fetching monthly report:', err);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
-    await Promise.all([fetchTodayStatus(), fetchHistory()]);
+    await Promise.all([fetchTodayStatus(), fetchHistory(), fetchMonthlyReport()]);
     setLoading(false);
   };
 
@@ -103,6 +116,41 @@ const Attendance = () => {
     );
   }
 
+  const renderLocationChips = (remarks) => {
+    if (!remarks) return null;
+    const chips = [];
+    if (remarks.includes('In-Office')) {
+      chips.push(
+        <Chip
+          key="in-office"
+          label="In-Office"
+          variant="outlined"
+          size="small"
+          sx={{ fontSize: 10, height: 18, borderColor: colors.navy, color: colors.navy }}
+        />
+      );
+    }
+    if (remarks.includes('WFH')) {
+      chips.push(
+        <Chip
+          key="wfh"
+          label="WFH"
+          variant="outlined"
+          size="small"
+          sx={{ fontSize: 10, height: 18, borderColor: colors.info, color: colors.info }}
+        />
+      );
+    }
+    if (chips.length > 0) {
+      return (
+        <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
+          {chips}
+        </Stack>
+      );
+    }
+    return null;
+  };
+
   return (
     <Box sx={{ pb: 6 }}>
       {/* Title Header */}
@@ -116,13 +164,59 @@ const Attendance = () => {
         </Typography>
       </Box>
 
+      {/* Monthly Summary Widget */}
+      {monthlySummary && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            mb: 4,
+            border: `1px solid ${colors.line}`,
+            borderRadius: 3,
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.navy, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalendarTodayRoundedIcon sx={{ fontSize: 18 }} />
+            This Month's Summary
+          </Typography>
+          <Grid container spacing={2}>
+            {[
+              { label: 'Present', value: monthlySummary.presentDays, tone: { fg: colors.success, bg: colors.successSoft } },
+              { label: 'Late', value: monthlySummary.lateDays, tone: { fg: colors.amberDeep, bg: colors.amberSoft } },
+              { label: 'Half Day', value: monthlySummary.halfDays, tone: { fg: colors.info, bg: colors.infoSoft } },
+              { label: 'Absent', value: monthlySummary.absentDays, tone: { fg: colors.danger, bg: colors.dangerSoft } },
+              { label: 'Total Hours', value: `${monthlySummary.totalWorkHours} hrs`, tone: { fg: colors.navy, bg: colors.navySoft } },
+            ].map((stat, i) => (
+              <Grid item xs={6} sm={2.4} key={i}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: stat.tone.bg,
+                    textAlign: 'center',
+                    border: `1px solid ${stat.tone.fg}22`,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: stat.tone.fg, lineHeight: 1.1 }}>
+                    {stat.value}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: stat.tone.fg, fontWeight: 700, mt: 0.5, display: 'block', textTransform: 'uppercase', fontSize: 10 }}>
+                    {stat.label}
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      )}
+
       <Grid container spacing={3.5}>
         {/* Main Attendance Card */}
-        <Grid item xs={12} md={7}>
+        <Grid item xs={12}>
           <Card
             sx={{
               p: 4,
-              height: '100%',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -138,7 +232,19 @@ const Attendance = () => {
                 Shift Attendance
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6 }}>
-                Make sure your browser's location settings are enabled. Your check-in/out requests will be validated based on your proximity to the office location.
+                {!hasCheckedIn && (
+                  "Make sure your browser's location settings are enabled. Your check-in/out requests will be validated based on your proximity to the office location."
+                )}
+                {hasCheckedIn && !hasCheckedOut && (
+                  <Box component="span" sx={{ color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    You're checked in since {formatTime(checkInTime)}.
+                  </Box>
+                )}
+                {hasCheckedIn && hasCheckedOut && (
+                  <Box component="span" sx={{ color: colors.success, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Today's attendance complete ✅
+                  </Box>
+                )}
               </Typography>
 
               {/* Status & Buttons */}
@@ -265,11 +371,10 @@ const Attendance = () => {
         </Grid>
 
         {/* History / Info Sidebar */}
-        <Grid item xs={12} md={5}>
+        <Grid item xs={12}>
           <Card
             sx={{
               p: 4,
-              height: '100%',
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 8px 32px rgba(38, 51, 92, 0.04)',
@@ -282,46 +387,56 @@ const Attendance = () => {
             </Typography>
 
             {history.length > 0 ? (
-              <List sx={{ p: 0, flexGrow: 1, overflowY: 'auto', maxH: 300 }}>
-                {history.map((record, index) => (
-                  <Box key={record.id || index}>
-                    {index > 0 && <Divider />}
-                    <ListItem sx={{ px: 0, py: 2 }}>
-                      <ListItemText
-                        primary={formatDate(record.attendance_date)}
-                        primaryTypographyProps={{ fontWeight: 700, fontSize: 14.5 }}
-                        secondary={
-                          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.5 }}>
-                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', fontSize: 12 }}>
-                              <AccessTimeRoundedIcon sx={{ fontSize: 14 }} />
-                              <span>In: {formatTime(record.check_in)}</span>
+              <List sx={{ p: 0, flexGrow: 1 }}>
+                {history.map((record, index) => {
+                  const tone = getAttendanceStatusTone(record.status || 'Present');
+                  return (
+                    <Box key={record.id || index}>
+                      {index > 0 && <Divider />}
+                      <ListItem sx={{ px: 0, py: 2 }}>
+                        <ListItemText
+                          primary={formatDate(record.attendance_date)}
+                          primaryTypographyProps={{ fontWeight: 700, fontSize: 14.5 }}
+                          secondary={
+                            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 0.5, flexWrap: 'wrap', gap: 1 }}>
+                              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                <AccessTimeRoundedIcon sx={{ fontSize: 14 }} />
+                                <span>In: {formatTime(record.check_in)}</span>
+                              </Stack>
+                              <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', fontSize: 12 }}>
+                                <AccessTimeRoundedIcon sx={{ fontSize: 14 }} />
+                                <span>Out: {formatTime(record.check_out)}</span>
+                              </Stack>
+                              {record.work_hours !== null && record.work_hours !== undefined && (
+                                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: colors.navy, fontSize: 12, fontWeight: 600 }}>
+                                  <span>• {record.work_hours} hrs</span>
+                                </Stack>
+                              )}
+                              {renderLocationChips(record.remarks)}
                             </Stack>
-                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color: 'text.secondary', fontSize: 12 }}>
-                              <AccessTimeRoundedIcon sx={{ fontSize: 14 }} />
-                              <span>Out: {formatTime(record.check_out)}</span>
-                            </Stack>
-                          </Stack>
-                        }
-                      />
-                      <Chip
-                        label={record.status || 'Present'}
-                        size="small"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 11,
-                          bgcolor: record.status === 'Absent' ? colors.dangerSoft : colors.successSoft,
-                          color: record.status === 'Absent' ? colors.danger : colors.success,
-                        }}
-                      />
-                    </ListItem>
-                  </Box>
-                ))}
+                          }
+                          secondaryTypographyProps={{ component: 'div' }}
+                        />
+                        <Chip
+                          label={record.status || 'Present'}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: 11,
+                            bgcolor: tone.bg,
+                            color: tone.fg,
+                          }}
+                        />
+                      </ListItem>
+                    </Box>
+                  );
+                })}
               </List>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1, py: 4, textAlign: 'center' }}>
                 <CalendarTodayRoundedIcon sx={{ fontSize: 44, color: 'text.disabled', mb: 1.5 }} />
                 <Typography variant="body2" color="text.secondary">
-                  No attendance history records found.
+                  No attendance records yet — check in to get started.
                 </Typography>
               </Box>
             )}

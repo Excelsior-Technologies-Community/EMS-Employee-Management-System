@@ -6,6 +6,7 @@ import GroupRoundedIcon from '@mui/icons-material/GroupRounded';
 import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
+import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
@@ -16,6 +17,7 @@ export const DRAWER_WIDTH = 240;
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/dashboard', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Employees', icon: <GroupRoundedIcon />, path: '/employees', roles: ['Admin', 'HR', 'Manager'] },
+  { label: 'Attendance', icon: <CalendarTodayRoundedIcon />, path: '/attendance', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Departments', icon: <ApartmentRoundedIcon />, path: '/departments', roles: ['Admin'] },
   { label: 'Roles', icon: <AdminPanelSettingsRoundedIcon />, path: '/roles', roles: ['Admin'] },
 

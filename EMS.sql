@@ -1,4 +1,4 @@
-CREATE DATABASE EMS;
+CREATE DATABASE IF NOT EXISTS EMS;
 USE EMS;
 
 -- =========================================================================
@@ -499,3 +499,4 @@ END $$
 DELIMITER ;
 
 select * from employees;
+select * from attendance;

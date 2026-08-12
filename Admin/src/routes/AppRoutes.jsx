@@ -5,6 +5,7 @@ import Login from '../pages/auth/Login';
 import Unauthorized from '../pages/auth/Unauthorized';
 import Dashboard from '../pages/dashboard/Dashboard';
 import EmployeeList from '../pages/employees/EmployeeList';
+import AttendanceList from '../pages/attendance/AttendanceList';
 import DepartmentList from '../pages/departments/DepartmentList';
 import RoleList from '../pages/roles/RoleList';
 import Profile from '../pages/profile/Profile';
@@ -26,6 +27,7 @@ const AppRoutes = () => (
     {/* Admin, HR, Manager */}
     <Route path="/dashboard" element={withLayout(<Dashboard />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/employees" element={withLayout(<EmployeeList />, ['Admin', 'HR', 'Manager'])} />
+    <Route path="/attendance" element={withLayout(<AttendanceList />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile" element={withLayout(<Profile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile/edit" element={withLayout(<EditProfile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/change-password" element={withLayout(<ChangePassword />, ['Admin', 'HR', 'Manager'])} />

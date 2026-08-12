@@ -100,6 +100,31 @@ export const CheckIn = async (req, res) => {
             );
         }
 
+        // Retrieve the check-in time to update status
+        const [attendanceRows] = await db.query(
+            "SELECT id, check_in FROM attendance WHERE employee_id = ? AND attendance_date = CURDATE()",
+            [employee_id]
+        );
+
+        if (attendanceRows.length > 0) {
+            const attendance = attendanceRows[0];
+            const [timeRows] = await db.query(
+                "SELECT TIME(check_in) AS check_in_time FROM attendance WHERE id = ?",
+                [attendance.id]
+            );
+            const checkInTime = timeRows[0].check_in_time;
+
+            let status = "Present";
+            if (checkInTime > "10:00:00") {
+                status = "Late";
+            }
+
+            await db.query(
+                "UPDATE attendance SET status = ? WHERE id = ?",
+                [status, attendance.id]
+            );
+        }
+
         return res.status(200).json({
             success: true,
             message: "Checked in successfully!"
@@ -186,6 +211,38 @@ export const CheckOut = async (req, res) => {
             );
         }
 
+        // Retrieve work_hours and check_in to update status
+        const [updatedRows] = await db.query(
+            "SELECT id, check_in, work_hours FROM attendance WHERE employee_id = ? AND attendance_date = CURDATE()",
+            [employee_id]
+        );
+
+        if (updatedRows.length > 0) {
+            const attendance = updatedRows[0];
+            const workHours = parseFloat(attendance.work_hours || 0);
+
+            let status = "Present";
+            if (workHours < 4) {
+                status = "Half Day";
+            } else {
+                const [timeRows] = await db.query(
+                    "SELECT TIME(check_in) AS check_in_time FROM attendance WHERE id = ?",
+                    [attendance.id]
+                );
+                const checkInTime = timeRows[0].check_in_time;
+                if (checkInTime > "10:00:00") {
+                    status = "Late";
+                } else {
+                    status = "Present";
+                }
+            }
+
+            await db.query(
+                "UPDATE attendance SET status = ? WHERE id = ?",
+                [status, attendance.id]
+            );
+        }
+
         return res.status(200).json({
             success: true,
             message: "Checked out successfully!"
@@ -251,6 +308,325 @@ export const getMyAttendanceHistory = async (req, res) => {
 
     } catch (error) {
         console.error("Error occurred fetching attendance history:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error: " + error.message
+        });
+    }
+};
+
+/**
+ * Helper to count weekdays (Monday to Friday) in a month
+ */
+const countWeekdays = (month, year, maxDay = null) => {
+    let count = 0;
+    const startDate = new Date(year, month - 1, 1);
+
+    let endDate;
+    if (maxDay) {
+        endDate = new Date(year, month - 1, maxDay);
+    } else {
+        endDate = new Date(year, month, 0);
+    }
+
+    const current = new Date(startDate);
+    while (current <= endDate) {
+        const dayOfWeek = current.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Monday to Friday
+            count++;
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    return count;
+};
+
+/**
+ * Get Monthly Attendance Report for the Logged In User (Self Only)
+ */
+export const getMonthlyReport = async (req, res) => {
+    try {
+        const employee_id = req.user.id;
+        const month = req.query.month ? parseInt(req.query.month, 10) : new Date().getMonth() + 1;
+        const year = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
+
+        if (isNaN(month) || month < 1 || month > 12) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid month. Month must be between 1 and 12."
+            });
+        }
+        if (isNaN(year) || year < 2000 || year > 2100) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid year."
+            });
+        }
+
+        // Calculate working days
+        const today = new Date();
+        const currentMonth = today.getMonth() + 1;
+        const currentYear = today.getFullYear();
+
+        let workingDays = 0;
+        if (year < currentYear || (year === currentYear && month < currentMonth)) {
+            // Past month: count all weekdays
+            workingDays = countWeekdays(month, year);
+        } else if (year === currentYear && month === currentMonth) {
+            // Current month: count weekdays up to today
+            workingDays = countWeekdays(month, year, today.getDate());
+        } else {
+            // Future month
+            workingDays = 0;
+        }
+
+        // Fetch user records
+        const [rows] = await db.query(
+            "SELECT attendance_date, check_in, check_out, status, work_hours, remarks FROM attendance WHERE employee_id = ? AND MONTH(attendance_date) = ? AND YEAR(attendance_date) = ? ORDER BY attendance_date ASC",
+            [employee_id, month, year]
+        );
+
+        let presentDays = 0;
+        let lateDays = 0;
+        let halfDays = 0;
+        let totalWorkHours = 0;
+
+        rows.forEach(r => {
+            if (r.status === 'Present') presentDays++;
+            else if (r.status === 'Late') lateDays++;
+            else if (r.status === 'Half Day') halfDays++;
+
+            if (r.work_hours) {
+                totalWorkHours += parseFloat(r.work_hours);
+            }
+        });
+
+        const markedCount = presentDays + lateDays + halfDays;
+        const absentDays = Math.max(0, workingDays - markedCount);
+
+        return res.status(200).json({
+            success: true,
+            message: "Monthly attendance report retrieved successfully",
+            data: {
+                summary: {
+                    workingDays,
+                    presentDays,
+                    lateDays,
+                    halfDays,
+                    absentDays,
+                    totalWorkHours: Number(totalWorkHours.toFixed(2))
+                },
+                breakdown: rows
+            }
+        });
+
+    } catch (error) {
+        console.error("Error occurred fetching monthly report:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error: " + error.message
+        });
+    }
+};
+
+/**
+ * Get Monthly Attendance Report for All Active Employees (Admin/HR/Manager Only)
+ */
+export const getMonthlyReportAll = async (req, res) => {
+    try {
+        const month = req.query.month ? parseInt(req.query.month, 10) : new Date().getMonth() + 1;
+        const year = req.query.year ? parseInt(req.query.year, 10) : new Date().getFullYear();
+        const { department_id } = req.query;
+
+        if (isNaN(month) || month < 1 || month > 12) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid month. Month must be between 1 and 12."
+            });
+        }
+        if (isNaN(year) || year < 2000 || year > 2100) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid year."
+            });
+        }
+
+        let query = `
+            SELECT 
+                e.name,
+                e.email,
+                d.department_name,
+                SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS present_days,
+                SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) AS late_days,
+                SUM(CASE WHEN a.status = 'Half Day' THEN 1 ELSE 0 END) AS half_days,
+                COUNT(a.id) AS marked_days,
+                COALESCE(SUM(a.work_hours), 0) AS total_work_hours
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN attendance a ON e.id = a.employee_id AND MONTH(a.attendance_date) = ? AND YEAR(a.attendance_date) = ?
+            WHERE e.status = 1
+        `;
+        const params = [month, year];
+
+        if (department_id) {
+            query += " AND e.department_id = ?";
+            params.push(parseInt(department_id, 10));
+        }
+
+        query += " GROUP BY e.id, e.name, e.email, d.department_name ORDER BY e.name ASC";
+
+        const [rows] = await db.query(query, params);
+
+        const formattedRows = rows.map(r => ({
+            name: r.name,
+            email: r.email,
+            department_name: r.department_name || "N/A",
+            present_days: Number(r.present_days || 0),
+            late_days: Number(r.late_days || 0),
+            half_days: Number(r.half_days || 0),
+            marked_days: Number(r.marked_days || 0),
+            total_work_hours: Number(parseFloat(r.total_work_hours || 0).toFixed(2))
+        }));
+
+        return res.status(200).json({
+            success: true,
+            message: "All employees monthly attendance report retrieved successfully",
+            data: formattedRows
+        });
+
+    } catch (error) {
+        console.error("Error occurred fetching all employees monthly report:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error: " + error.message
+        });
+    }
+};
+
+const combineDateAndTime = (dateStr, timeStr) => {
+    if (!timeStr) return null;
+    if (timeStr.includes('T') || timeStr.includes(' ')) {
+        return timeStr;
+    }
+    const formattedTime = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
+    // Format date if it contains ISO T
+    const formattedDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    return `${formattedDate} ${formattedTime}`;
+};
+
+/**
+ * Get all attendance records (Admin/HR/Manager)
+ */
+export const getAllAttendance = async (req, res) => {
+    try {
+        const { date, department_id, employee_id } = req.query;
+        let query = `
+            SELECT 
+                a.id,
+                a.employee_id,
+                e.name AS employee_name,
+                d.department_name,
+                a.attendance_date,
+                a.check_in,
+                a.check_out,
+                a.work_hours,
+                a.status,
+                a.remarks
+            FROM attendance a
+            JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (date) {
+            const formattedDate = date.includes('T') ? date.split('T')[0] : date;
+            query += " AND a.attendance_date = ?";
+            params.push(formattedDate);
+        }
+        if (department_id) {
+            query += " AND e.department_id = ?";
+            params.push(parseInt(department_id, 10));
+        }
+        if (employee_id) {
+            query += " AND a.employee_id = ?";
+            params.push(parseInt(employee_id, 10));
+        }
+
+        query += " ORDER BY a.attendance_date DESC, e.name ASC";
+
+        const [rows] = await db.query(query, params);
+
+        return res.status(200).json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error("Error occurred while fetching all attendance:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error: " + error.message
+        });
+    }
+};
+
+/**
+ * Save manual attendance record (Add or Edit) - Admin/HR only
+ */
+export const saveAttendanceManual = async (req, res) => {
+    try {
+        const { employee_id, attendance_date, check_in, check_out, status, remarks } = req.body;
+
+        if (!employee_id || !attendance_date || !status) {
+            return res.status(400).json({
+                success: false,
+                message: "Employee, Date, and Status are required."
+            });
+        }
+
+        const formattedDate = attendance_date.includes('T') ? attendance_date.split('T')[0] : attendance_date;
+        const checkInDateTime = combineDateAndTime(formattedDate, check_in);
+        const checkOutDateTime = combineDateAndTime(formattedDate, check_out);
+
+        let work_hours = null;
+        if (checkInDateTime && checkOutDateTime) {
+            const checkInDate = new Date(checkInDateTime);
+            const checkOutDate = new Date(checkOutDateTime);
+            if (checkOutDate > checkInDate) {
+                const diffMs = checkOutDate - checkInDate;
+                work_hours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+            }
+        }
+
+        // Check if attendance record already exists for this employee on this date
+        const [existing] = await db.query(
+            "SELECT id FROM attendance WHERE employee_id = ? AND attendance_date = ?",
+            [employee_id, formattedDate]
+        );
+
+        if (existing && existing.length > 0) {
+            // Update
+            const recordId = existing[0].id;
+            await db.query(
+                "UPDATE attendance SET check_in = ?, check_out = ?, status = ?, remarks = ?, work_hours = ? WHERE id = ?",
+                [checkInDateTime, checkOutDateTime, status, remarks || null, work_hours, recordId]
+            );
+            return res.status(200).json({
+                success: true,
+                message: "Attendance updated successfully!"
+            });
+        } else {
+            // Insert
+            await db.query(
+                "INSERT INTO attendance (employee_id, attendance_date, check_in, check_out, status, remarks, work_hours) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [employee_id, formattedDate, checkInDateTime, checkOutDateTime, status, remarks || null, work_hours]
+            );
+            return res.status(201).json({
+                success: true,
+                message: "Attendance recorded successfully!"
+            });
+        }
+    } catch (error) {
+        console.error("Error saving manual attendance:", error.message);
         return res.status(500).json({
             success: false,
             message: "Internal server error: " + error.message

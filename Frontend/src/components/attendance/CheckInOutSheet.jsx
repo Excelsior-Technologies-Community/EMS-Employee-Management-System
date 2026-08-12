@@ -43,7 +43,8 @@ const CheckInOutSheet = ({ open, onClose, action, onSuccess }) => {
           );
           if (res.ok) {
             const data = await res.json();
-            setAddress(data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+            const address = data.display_name;
+            setAddress(address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
           } else {
             setAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
           }
