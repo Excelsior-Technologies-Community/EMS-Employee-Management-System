@@ -8,7 +8,8 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import roleRoutes from "./routes/roleRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
-
+import leaveTypeRoutes from "./routes/leaveTypeRoutes.js";
+import leaveRoutes from "./routes/leaveRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
     process.env.FRONTEND_URL,
+    process.env.ADMIN_URL,
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
@@ -82,7 +84,8 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/attendance", attendanceRoutes);
-
+app.use("/api/leave-types", leaveTypeRoutes);
+app.use("/api/leaves", leaveRoutes);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server started at http://localhost:${PORT} (listening on all interfaces: 0.0.0.0)`);
 });

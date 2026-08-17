@@ -498,5 +498,218 @@ END $$
 
 DELIMITER ;
 
-select * from employees;
-select * from attendance;
+
+
+CREATE TABLE leave_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    leave_name VARCHAR(100) NOT NULL UNIQUE,
+    description VARCHAR(255),
+
+    status TINYINT(1) DEFAULT 1,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INT DEFAULT NULL,
+
+    updated_at DATETIME DEFAULT NULL,
+    updated_by INT DEFAULT NULL
+);
+INSERT INTO leave_types
+(leave_name, description)
+VALUES
+('Casual Leave', 'Leave for personal or casual reasons'),
+('Sick Leave', 'Leave due to illness or medical reasons'),
+('Paid Leave', 'Paid annual leave');
+SELECT * FROM leave_types;
+
+
+DELIMITER &&
+CREATE PROCEDURE SP_AddLeaveType(
+IN p_leave_name VARCHAR(100),
+IN p_description VARCHAR(300),
+IN p_created_by INT
+)
+BEGIN
+INSERT INTO leave_types(
+leave_name,
+description,
+created_by
+)
+VALUES(
+p_leave_name,
+p_description,
+p_created_by
+);
+END &&
+DELIMITER ; 
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetAllLeaveTypes()
+BEGIN
+
+    SELECT
+        id,
+        leave_name,
+        description,
+        status,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by
+    FROM leave_types
+    ORDER BY id DESC;
+
+END $$
+
+DELIMITER ;
+
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetLeaveTypeById(
+    IN p_id INT
+)
+BEGIN
+
+    SELECT
+        id,
+        leave_name,
+        description,
+        status,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by
+    FROM leave_types
+    WHERE id = p_id;
+
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_UpdateLeaveType(
+    IN p_id INT,
+    IN p_leave_name VARCHAR(100),
+    IN p_description VARCHAR(255),
+    IN p_updated_by INT
+)
+BEGIN
+
+    UPDATE leave_types
+    SET
+        leave_name = p_leave_name,
+        description = p_description,
+        updated_at = NOW(),
+        updated_by = p_updated_by
+    WHERE id = p_id;
+
+END $$
+
+DELIMITER ;
+
+-- =========================================================================
+-- 6. LEAVES
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS leaves (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employee_id INT NOT NULL,
+    leave_type_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_days INT NOT NULL,
+    reason VARCHAR(255) NULL,
+    status ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') DEFAULT 'Pending',
+    approved_by INT DEFAULT NULL,
+    approved_at DATETIME DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_leaves_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    CONSTRAINT fk_leaves_type FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE,
+    CONSTRAINT fk_leaves_approver FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
+);
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_DeleteLeaveType(
+    IN p_id INT,
+    IN p_updated_by INT
+)
+BEGIN
+    UPDATE leave_types
+    SET status = 0,
+        updated_by = p_updated_by,
+        updated_at = NOW()
+    WHERE id = p_id;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_ApplyLeave(
+    IN p_employee_id INT,
+    IN p_leave_type_id INT,
+    IN p_start_date DATE,
+    IN p_end_date DATE,
+    IN p_reason VARCHAR(255)
+)
+BEGIN
+    DECLARE v_active TINYINT(1) DEFAULT 0;
+    DECLARE v_exists INT DEFAULT 0;
+
+    SELECT COUNT(*), IFNULL(MAX(status), 0) INTO v_exists, v_active
+    FROM leave_types
+    WHERE id = p_leave_type_id;
+
+    IF v_exists = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Leave type not found.';
+    ELSEIF v_active = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Leave type is inactive.';
+    END IF;
+
+    IF p_end_date < p_start_date THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'End date cannot be before start date.';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM leaves
+        WHERE employee_id = p_employee_id
+          AND status IN ('Pending', 'Approved')
+          AND start_date <= p_end_date
+          AND end_date >= p_start_date
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Overlapping leave application exists.';
+    END IF;
+
+    INSERT INTO leaves (
+        employee_id,
+        leave_type_id,
+        start_date,
+        end_date,
+        total_days,
+        reason,
+        status
+    )
+    VALUES (
+        p_employee_id,
+        p_leave_type_id,
+        p_start_date,
+        p_end_date,
+        DATEDIFF(p_end_date, p_start_date) + 1,
+        p_reason,
+        'Pending'
+    );
+END $$
+
+DELIMITER ;
+
+
