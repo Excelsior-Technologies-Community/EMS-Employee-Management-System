@@ -625,8 +625,11 @@ CREATE TABLE IF NOT EXISTS leaves (
     status ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') DEFAULT 'Pending',
     approved_by INT DEFAULT NULL,
     approved_at DATETIME DEFAULT NULL,
+    approval_reason VARCHAR(255) NULL,
+    rejection_reason VARCHAR(255) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    updated_by INT DEFAULT NULL,
     CONSTRAINT fk_leaves_employee FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
     CONSTRAINT fk_leaves_type FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) ON DELETE CASCADE,
     CONSTRAINT fk_leaves_approver FOREIGN KEY (approved_by) REFERENCES employees(id) ON DELETE SET NULL
@@ -655,41 +658,10 @@ CREATE PROCEDURE SP_ApplyLeave(
     IN p_leave_type_id INT,
     IN p_start_date DATE,
     IN p_end_date DATE,
+    IN p_total_days INT,
     IN p_reason VARCHAR(255)
 )
 BEGIN
-    DECLARE v_active TINYINT(1) DEFAULT 0;
-    DECLARE v_exists INT DEFAULT 0;
-
-    SELECT COUNT(*), IFNULL(MAX(status), 0) INTO v_exists, v_active
-    FROM leave_types
-    WHERE id = p_leave_type_id;
-
-    IF v_exists = 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Leave type not found.';
-    ELSEIF v_active = 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Leave type is inactive.';
-    END IF;
-
-    IF p_end_date < p_start_date THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'End date cannot be before start date.';
-    END IF;
-
-    IF EXISTS (
-        SELECT 1
-        FROM leaves
-        WHERE employee_id = p_employee_id
-          AND status IN ('Pending', 'Approved')
-          AND start_date <= p_end_date
-          AND end_date >= p_start_date
-    ) THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Overlapping leave application exists.';
-    END IF;
-
     INSERT INTO leaves (
         employee_id,
         leave_type_id,
@@ -704,12 +676,204 @@ BEGIN
         p_leave_type_id,
         p_start_date,
         p_end_date,
-        DATEDIFF(p_end_date, p_start_date) + 1,
+        p_total_days,
         p_reason,
         'Pending'
     );
 END $$
 
 DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetMyLeaves(
+    IN p_employee_id INT
+)
+BEGIN
+    SELECT 
+        l.id,
+        l.leave_type_id,
+        lt.leave_name,
+        DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
+        DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
+        l.total_days,
+        l.reason,
+        l.status,
+        l.approved_by,
+        l.approved_at,
+        l.created_at
+    FROM leaves l
+    INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+    WHERE l.employee_id = p_employee_id
+    ORDER BY l.created_at DESC;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetPendingLeaves(
+    IN p_department_id INT
+)
+BEGIN
+    IF p_department_id IS NOT NULL THEN
+        SELECT 
+            l.id,
+            l.employee_id,
+            e.name AS employee_name,
+            e.email AS employee_email,
+            d.department_name,
+            lt.leave_name,
+            DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
+            DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
+            l.total_days,
+            l.reason,
+            l.status,
+            l.created_at
+        FROM leaves l
+        INNER JOIN employees e ON l.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        WHERE l.status = 'Pending' AND e.department_id = p_department_id
+        ORDER BY l.created_at ASC;
+    ELSE
+        SELECT 
+            l.id,
+            l.employee_id,
+            e.name AS employee_name,
+            e.email AS employee_email,
+            d.department_name,
+            lt.leave_name,
+            DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
+            DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
+            l.total_days,
+            l.reason,
+            l.status,
+            l.created_at
+        FROM leaves l
+        INNER JOIN employees e ON l.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        WHERE l.status = 'Pending'
+        ORDER BY l.created_at ASC;
+    END IF;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetLeaveByIdForApproval(
+    IN p_leave_id INT
+)
+BEGIN
+    SELECT 
+        l.id,
+        l.employee_id,
+        e.department_id,
+        l.status
+    FROM leaves l
+    INNER JOIN employees e ON l.employee_id = e.id
+    WHERE l.id = p_leave_id;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_ApproveLeave(
+    IN p_leave_id INT,
+    IN p_approved_by INT,
+    IN p_approval_reason VARCHAR(255)
+)
+BEGIN
+    UPDATE leaves
+    SET 
+        status = 'Approved',
+        approved_by = p_approved_by,
+        approved_at = NOW(),
+        approval_reason = p_approval_reason,
+        updated_at = NOW(),
+        updated_by = p_approved_by
+    WHERE id = p_leave_id AND status = 'Pending';
+    
+    SELECT ROW_COUNT() AS affected_rows;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_RejectLeave(
+    IN p_leave_id INT,
+    IN p_rejected_by INT,
+    IN p_rejection_reason VARCHAR(255)
+)
+BEGIN
+    UPDATE leaves
+    SET 
+        status = 'Rejected',
+        approved_by = p_rejected_by,
+        approved_at = NOW(),
+        rejection_reason = p_rejection_reason,
+        updated_at = NOW(),
+        updated_by = p_rejected_by
+    WHERE id = p_leave_id AND status = 'Pending';
+    
+    SELECT ROW_COUNT() AS affected_rows;
+END $$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetAllLeaves(
+    IN p_department_id INT
+)
+BEGIN
+    IF p_department_id IS NOT NULL THEN
+        SELECT 
+            l.id,
+            l.employee_id,
+            e.name AS employee_name,
+            e.email AS employee_email,
+            d.department_name,
+            lt.leave_name,
+            DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
+            DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
+            l.total_days,
+            l.reason,
+            l.status,
+            l.created_at
+        FROM leaves l
+        INNER JOIN employees e ON l.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        WHERE e.department_id = p_department_id
+        ORDER BY l.created_at DESC;
+    ELSE
+        SELECT 
+            l.id,
+            l.employee_id,
+            e.name AS employee_name,
+            e.email AS employee_email,
+            d.department_name,
+            lt.leave_name,
+            DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date,
+            DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date,
+            l.total_days,
+            l.reason,
+            l.status,
+            l.created_at
+        FROM leaves l
+        INNER JOIN employees e ON l.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        ORDER BY l.created_at DESC;
+    END IF;
+END $$
+
+DELIMITER ;
+
 
 

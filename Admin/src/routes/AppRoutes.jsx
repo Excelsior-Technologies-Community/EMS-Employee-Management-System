@@ -12,6 +12,7 @@ import Profile from '../pages/profile/Profile';
 import EditProfile from '../pages/profile/EditProfile';
 import ChangePassword from '../pages/profile/ChangePassword';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import LeaveList from '../pages/leaves/LeaveList';
 const withLayout = (page, roles) => (
   <ProtectedRoute roles={roles}>
     <AdminLayout>{page}</AdminLayout>
@@ -28,6 +29,7 @@ const AppRoutes = () => (
     <Route path="/dashboard" element={withLayout(<Dashboard />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/employees" element={withLayout(<EmployeeList />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/attendance" element={withLayout(<AttendanceList />, ['Admin', 'HR', 'Manager'])} />
+    <Route path="/leaves" element={withLayout(<LeaveList />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile" element={withLayout(<Profile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile/edit" element={withLayout(<EditProfile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/change-password" element={withLayout(<ChangePassword />, ['Admin', 'HR', 'Manager'])} />

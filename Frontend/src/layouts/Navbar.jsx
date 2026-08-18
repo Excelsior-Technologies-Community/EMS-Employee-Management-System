@@ -11,6 +11,7 @@ import LockResetRoundedIcon from '@mui/icons-material/LockResetRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import FingerprintRoundedIcon from '@mui/icons-material/FingerprintRounded';
+import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { colors, getAvatarGradient } from '../theme/colors';
@@ -21,6 +22,7 @@ export const DRAWER_WIDTH = 232;
 const navItems = [
   { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/dashboard' },
   { label: 'Attendance', icon: <FingerprintRoundedIcon />, path: '/attendance' },
+  { label: 'Leaves', icon: <EventNoteRoundedIcon />, path: '/leaves' },
   { label: 'My Profile', icon: <BadgeRoundedIcon />, path: '/profile' },
   { label: 'Change Password', icon: <LockResetRoundedIcon />, path: '/change-password' },
 ];

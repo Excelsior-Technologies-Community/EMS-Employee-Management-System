@@ -294,12 +294,23 @@ export const getAttendanceStatus = async (req, res) => {
 export const getMyAttendanceHistory = async (req, res) => {
     try {
         const employee_id = req.user.id;
+        const { from, to } = req.query;
 
-        // Fetch last 30 attendance records in descending order
-        const [rows] = await db.query(
-            "SELECT * FROM attendance WHERE employee_id = ? ORDER BY attendance_date DESC LIMIT 30",
-            [employee_id]
-        );
+        let sql = "SELECT * FROM attendance WHERE employee_id = ?";
+        const params = [employee_id];
+
+        if (from) {
+            sql += " AND attendance_date >= ?";
+            params.push(from);
+        }
+        if (to) {
+            sql += " AND attendance_date <= ?";
+            params.push(to);
+        }
+
+        sql += " ORDER BY attendance_date DESC LIMIT 100";
+
+        const [rows] = await db.query(sql, params);
 
         return res.status(200).json({
             success: true,
