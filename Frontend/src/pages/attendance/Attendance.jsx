@@ -140,32 +140,31 @@ const Attendance = () => {
 
       {/* Compact Monthly Summary Widget */}
       {monthlySummary && (
-        <Grid container spacing={2} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ mb: 4.5 }}>
           {[
-            { label: 'Present', value: monthlySummary.presentDays },
-            { label: 'Late', value: monthlySummary.lateDays },
-            { label: 'Half Day', value: monthlySummary.halfDays },
-            { label: 'Absent', value: monthlySummary.absentDays },
-            { label: 'Total Hours', value: `${monthlySummary.totalWorkHours} hrs` },
+            { label: 'Present', value: monthlySummary.presentDays, tone: { fg: colors.success, bg: colors.successSoft } },
+            { label: 'Late', value: monthlySummary.lateDays, tone: { fg: colors.amberDeep, bg: colors.amberSoft } },
+            { label: 'Half Day', value: monthlySummary.halfDays, tone: { fg: colors.info, bg: colors.infoSoft } },
+            { label: 'Absent', value: monthlySummary.absentDays, tone: { fg: colors.danger, bg: colors.dangerSoft } },
+            { label: 'Total Hours', value: `${monthlySummary.totalWorkHours} hrs`, tone: { fg: colors.navy, bg: colors.navySoft } },
           ].map((stat, i) => (
-            <Grid item xs={6} sm={2.4} key={i}>
-              <Paper
-                elevation={0}
+            <Grid size={{ xs: 6, sm: 2.4 }} key={i}>
+              <Box
                 sx={{
-                  p: 2,
-                  border: `1px solid ${colors.line}`,
-                  borderRadius: 2.5,
-                  bgcolor: 'background.paper',
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 3,
+                  bgcolor: stat.tone.bg,
+                  border: `1px solid ${stat.tone.fg}18`,
                   textAlign: 'center',
                 }}
               >
-                <Typography variant="h6" sx={{ fontWeight: 800, color: colors.navy, lineHeight: 1.1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: stat.tone.fg, lineHeight: 1.1, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
                   {stat.value}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, mt: 0.5, display: 'block', textTransform: 'uppercase', fontSize: 10 }}>
+                <Typography variant="caption" sx={{ color: stat.tone.fg, fontWeight: 700, mt: 0.5, display: 'block', textTransform: 'uppercase', fontSize: { xs: 9, sm: 10 }, letterSpacing: '0.03em' }}>
                   {stat.label}
                 </Typography>
-              </Paper>
+              </Box>
             </Grid>
           ))}
         </Grid>
@@ -175,10 +174,10 @@ const Attendance = () => {
       <Grid container spacing={3.5} alignItems="stretch">
         
         {/* Left Column: Shift Attendance Action Card */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
-              p: 3.5,
+              p: { xs: 2.5, sm: 3.5 },
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -325,10 +324,10 @@ const Attendance = () => {
         </Grid>
 
         {/* Right Column: Recent History Card (Balanced Height) */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
-              p: 3.5,
+              p: { xs: 2.5, sm: 3.5 },
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -414,21 +413,20 @@ const Attendance = () => {
               )}
             </Box>
 
-            {/* View All Attendance Link */}
+            {/* View All Attendance Button */}
             {recentHistory.length > 0 && (
-              <Box sx={{ pt: 2.5 }}>
-                <Divider sx={{ mb: 2 }} />
+              <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'center' }}>
                 <Button
                   component={Link}
                   to="/attendance/history"
-                  size="small"
-                  endIcon={<ArrowForwardRoundedIcon />}
+                  variant="text"
                   sx={{
                     fontWeight: 700,
-                    color: colors.navy,
                     textTransform: 'none',
-                    p: 0,
-                    '&:hover': { bgcolor: 'transparent', textDecoration: 'underline' }
+                    color: colors.navy,
+                    '&:hover': {
+                      bgcolor: colors.navySoft
+                    }
                   }}
                 >
                   View All Attendance

@@ -70,7 +70,7 @@ const EmployeeFormDialog = ({ open, mode = 'add', employee, onClose, onSuccess }
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <DialogContent dividers>
           <Grid container spacing={1}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <CustomInput
                 name="name"
                 control={control}
@@ -79,7 +79,7 @@ const EmployeeFormDialog = ({ open, mode = 'add', employee, onClose, onSuccess }
                 startIcon={<PersonOutlineRoundedIcon fontSize="small" />}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <CustomInput
                 name="email"
                 control={control}
@@ -89,7 +89,7 @@ const EmployeeFormDialog = ({ open, mode = 'add', employee, onClose, onSuccess }
                 startIcon={<MailOutlineRoundedIcon fontSize="small" />}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <CustomInput
                 name="password"
                 control={control}
@@ -99,14 +99,14 @@ const EmployeeFormDialog = ({ open, mode = 'add', employee, onClose, onSuccess }
                 startIcon={<LockOutlineRoundedIcon fontSize="small" />}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput name="role_id" control={control} label="Role" select rules={{ required: 'Role is required' }}>
                 {roles.map((r) => (
                   <MenuItem key={r.id} value={r.id}>{r.role_name}</MenuItem>
                 ))}
               </CustomInput>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput name="department_id" control={control} label="Department" select rules={{ required: 'Department is required' }}>
                 {departments.map((d) => (
                   <MenuItem key={d.id} value={d.id}>{d.department_name}</MenuItem>

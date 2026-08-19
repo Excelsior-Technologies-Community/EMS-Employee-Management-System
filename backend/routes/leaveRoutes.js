@@ -264,6 +264,18 @@ router.get(
  *                         type: integer
  *                         nullable: true
  *                         example: null
+ *                       approved_by_name:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "Rahul Sharma"
+ *                       approved_by_role:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "HR"
+ *                       rejection_reason:
+ *                         type: string
+ *                         nullable: true
+ *                         example: "Insufficient leave balance"
  *                       approved_at:
  *                         type: string
  *                         format: date-time
@@ -349,6 +361,18 @@ router.get(
  *                       type: integer
  *                       nullable: true
  *                       example: null
+ *                     approved_by_name:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Rahul Sharma"
+ *                     approved_by_role:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "HR"
+ *                     rejection_reason:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "Insufficient leave balance"
  *                     approved_at:
  *                       type: string
  *                       format: date-time

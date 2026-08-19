@@ -165,7 +165,7 @@ const AttendanceList = () => {
       {/* Filters */}
       <Box sx={{ mb: 3, bgcolor: 'background.paper', p: 2, borderRadius: 2, border: `1px solid ${colors.line}` }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               label="Filter by Date"
               type="date"
@@ -176,7 +176,7 @@ const AttendanceList = () => {
               inputProps={{ max: todayStr }}
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               label="Filter by Department"
               select
@@ -192,7 +192,7 @@ const AttendanceList = () => {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={4} sx={{ textAlign: { sm: 'right' } }}>
+          <Grid size={{ xs: 12, sm: 4 }} sx={{ textAlign: { sm: 'right' } }}>
             <CustomButton
               variant="outlined"
               color="inherit"

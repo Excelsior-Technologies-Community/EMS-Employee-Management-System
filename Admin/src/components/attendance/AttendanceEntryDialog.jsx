@@ -107,7 +107,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <DialogContent dividers>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput
                 name="employee_id"
                 control={control}
@@ -124,7 +124,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
               </CustomInput>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput
                 name="attendance_date"
                 control={control}
@@ -137,7 +137,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput
                 name="check_in"
                 control={control}
@@ -147,7 +147,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <CustomInput
                 name="check_out"
                 control={control}
@@ -157,7 +157,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <CustomInput
                 name="status"
                 control={control}
@@ -172,7 +172,7 @@ const AttendanceEntryDialog = ({ open, mode = 'add', record, onClose, onSuccess 
               </CustomInput>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <CustomInput
                 name="remarks"
                 control={control}

@@ -67,7 +67,7 @@ export const applyLeave = async (req, res) => {
 
         // Validate leave type exists and is active (status = 1)
         const [leaveTypeRows] = await db.query(
-            "SELECT status FROM leave_types WHERE id = ?",
+            "SELECT status, max_days, leave_name FROM leave_types WHERE id = ?",
             [leave_type_id]
         );
 
@@ -77,6 +77,8 @@ export const applyLeave = async (req, res) => {
                 message: "Invalid or inactive leave type."
             });
         }
+
+        const { max_days, leave_name } = leaveTypeRows[0];
 
         // Check overlapping leave (status = 'Pending' or 'Approved')
         const [overlapRows] = await db.query(
@@ -101,6 +103,35 @@ export const applyLeave = async (req, res) => {
         const endDateParsed = new Date(end_date);
         const diffTime = Math.abs(endDateParsed - startDateParsed);
         const total_days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        // Verify request length itself doesn't exceed annual maximum days
+        if (total_days > max_days) {
+            return res.status(400).json({
+                success: false,
+                message: `The requested duration (${total_days} days) exceeds the annual limit for ${leave_name} (${max_days} days).`
+            });
+        }
+
+        // Calculate already used/pending leave days in the current year
+        const [usageRows] = await db.query(
+            `SELECT SUM(total_days) AS used_days 
+             FROM leaves 
+             WHERE employee_id = ? 
+               AND leave_type_id = ? 
+               AND status IN ('Approved', 'Pending') 
+               AND YEAR(start_date) = YEAR(CURRENT_DATE())`,
+            [employee_id, leave_type_id]
+        );
+
+        const usedDays = usageRows[0]?.used_days ? parseInt(usageRows[0].used_days, 10) : 0;
+        const availableBalance = max_days - usedDays;
+
+        if (total_days > availableBalance) {
+            return res.status(400).json({
+                success: false,
+                message: `Leave balance exceeded. You have ${availableBalance} days available for ${leave_name} in the current year, but requested ${total_days} days.`
+            });
+        }
 
         // Call SP_ApplyLeave
         await db.query(
@@ -174,9 +205,16 @@ export const getLeaveById = async (req, res) => {
             `SELECT l.id, l.employee_id, l.leave_type_id, lt.leave_name, 
                     DATE_FORMAT(l.start_date, '%Y-%m-%d') AS start_date, 
                     DATE_FORMAT(l.end_date, '%Y-%m-%d') AS end_date, 
-                    l.total_days, l.reason, l.status, l.approved_by, l.approved_at, l.created_at
+                    l.total_days, l.reason, l.status, l.approved_by, 
+                    DATE_FORMAT(l.approved_at, '%Y-%m-%d %H:%i:%s') AS approved_at, 
+                    l.created_at,
+                    emp_app.name AS approved_by_name,
+                    r_app.role_name AS approved_by_role,
+                    l.rejection_reason
              FROM leaves l
              INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+             LEFT JOIN employees emp_app ON l.approved_by = emp_app.id
+             LEFT JOIN roles r_app ON emp_app.role_id = r_app.id
              WHERE l.id = ? AND l.employee_id = ?`,
             [id, employee_id]
         );

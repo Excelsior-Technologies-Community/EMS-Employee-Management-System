@@ -25,6 +25,7 @@ const DataTable = ({
   rowsPerPageOptions = [5, 10, 25],
   defaultRowsPerPage = 10,
   toolbarAction,
+  hideSearch = false,
 }) => {
   const [search, setSearch] = useState('');
   const [order, setOrder] = useState('asc');
@@ -33,12 +34,12 @@ const DataTable = ({
   const [rowsPerPage, setRowsPerPage] = useState(defaultRowsPerPage);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
+    if (hideSearch || !search.trim()) return rows;
     const term = search.trim().toLowerCase();
     return rows.filter((row) =>
       searchKeys.some((key) => String(row[key] ?? '').toLowerCase().includes(term))
     );
-  }, [rows, search, searchKeys]);
+  }, [rows, search, searchKeys, hideSearch]);
 
   const sorted = useMemo(() => {
     if (!orderBy) return filtered;
@@ -67,20 +68,22 @@ const DataTable = ({
   return (
     <Paper sx={{ borderRadius: 2, border: `1px solid ${colors.line}` }}>
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-        <TextField
-          size="small"
-          placeholder={searchPlaceholder}
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          sx={{ width: { xs: '100%', sm: 260 } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchRoundedIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        {!hideSearch && (
+          <TextField
+            size="small"
+            placeholder={searchPlaceholder}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            sx={{ width: { xs: '100%', sm: 260 } }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        )}
         {toolbarAction}
       </Box>
 

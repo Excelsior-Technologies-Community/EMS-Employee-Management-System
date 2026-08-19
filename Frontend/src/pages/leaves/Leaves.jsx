@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Card, Typography, Grid, Stack, MenuItem, Chip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Alert, Divider, CircularProgress
+  Paper, Alert, Divider, CircularProgress, Button
 } from '@mui/material';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -19,6 +20,7 @@ import { getErrorMessage } from '../../services/api';
 import { colors } from '../../theme/colors';
 
 const Leaves = () => {
+  const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -28,6 +30,9 @@ const Leaves = () => {
     () => leaveService.getMyLeaves(),
     []
   );
+
+  const safeLeaves = leaves || [];
+  const recentLeaves = safeLeaves.slice(0, 3);
 
   // Fetch Leave Types
   const { data: leaveTypes = [], loading: loadingTypes } = useFetch(
@@ -120,10 +125,10 @@ const Leaves = () => {
   }
 
   // Calculate metrics
-  const totalApplied = leaves.length;
-  const totalPending = leaves.filter(l => l.status === 'Pending').length;
-  const totalApproved = leaves.filter(l => l.status === 'Approved').length;
-  const totalRejected = leaves.filter(l => l.status === 'Rejected').length;
+  const totalApplied = safeLeaves.length;
+  const totalPending = safeLeaves.filter(l => l.status === 'Pending').length;
+  const totalApproved = safeLeaves.filter(l => l.status === 'Approved').length;
+  const totalRejected = safeLeaves.filter(l => l.status === 'Rejected').length;
 
   // Filter active leave types
   const activeLeaveTypes = leaveTypes.filter(t => t.status === 1);
@@ -142,27 +147,27 @@ const Leaves = () => {
       </Box>
 
       {/* Metrics Row */}
-      <Grid container spacing={2.5} sx={{ mb: 4.5 }}>
+      <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ mb: 4.5 }}>
         {[
           { label: 'Total Requests', value: totalApplied, tone: { fg: colors.navy, bg: colors.navySoft } },
           { label: 'Pending Approval', value: totalPending, tone: { fg: colors.amberDeep, bg: colors.amberSoft } },
           { label: 'Approved', value: totalApproved, tone: { fg: colors.success, bg: colors.successSoft } },
           { label: 'Rejected / Cancelled', value: totalRejected, tone: { fg: colors.danger, bg: colors.dangerSoft } }
         ].map((stat, idx) => (
-          <Grid item xs={6} sm={3} key={idx}>
+          <Grid size={{ xs: 6, sm: 3 }} key={idx}>
             <Box
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 borderRadius: 3,
                 bgcolor: stat.tone.bg,
                 border: `1px solid ${stat.tone.fg}18`,
                 textAlign: 'center'
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 800, color: stat.tone.fg, lineHeight: 1.1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: stat.tone.fg, lineHeight: 1.1, fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
                 {stat.value}
               </Typography>
-              <Typography variant="caption" sx={{ color: stat.tone.fg, fontWeight: 700, mt: 0.5, display: 'block', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.03em' }}>
+              <Typography variant="caption" sx={{ color: stat.tone.fg, fontWeight: 700, mt: 0.5, display: 'block', textTransform: 'uppercase', fontSize: { xs: 9, sm: 10 }, letterSpacing: '0.03em' }}>
                 {stat.label}
               </Typography>
             </Box>
@@ -171,12 +176,12 @@ const Leaves = () => {
       </Grid>
 
       {/* Form and History */}
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 3, md: 4 }}>
         {/* Left Column: Apply Form */}
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
-              p: 3.5,
+              p: { xs: 2, sm: 3.5 },
               boxShadow: '0 8px 32px rgba(38, 51, 92, 0.03)',
               border: `1px solid ${colors.line}`
             }}
@@ -210,7 +215,7 @@ const Leaves = () => {
               </CustomInput>
 
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <CustomInput
                     name="start_date"
                     control={control}
@@ -220,7 +225,7 @@ const Leaves = () => {
                     rules={{ required: 'Start date is required' }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <CustomInput
                     name="end_date"
                     control={control}
@@ -264,10 +269,10 @@ const Leaves = () => {
         </Grid>
 
         {/* Right Column: Leave History */}
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
-              p: 3.5,
+              p: { xs: 2, sm: 3.5 },
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
@@ -280,7 +285,7 @@ const Leaves = () => {
               Application History
             </Typography>
 
-            {leaves.length > 0 ? (
+            {safeLeaves.length > 0 ? (
               <>
                 {/* Desktop and Tablet Table view */}
                 <TableContainer 
@@ -302,10 +307,11 @@ const Leaves = () => {
                         <TableCell sx={{ fontWeight: 700, fontSize: 13, color: colors.navy, textAlign: 'center' }}>Days</TableCell>
                         <TableCell sx={{ fontWeight: 700, fontSize: 13, color: colors.navy }}>Reason</TableCell>
                         <TableCell sx={{ fontWeight: 700, fontSize: 13, color: colors.navy }}>Status</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 13, color: colors.navy }}>Action By</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {leaves.map((leave) => (
+                      {recentLeaves.map((leave) => (
                         <TableRow key={leave.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                           <TableCell sx={{ fontSize: 13.5, fontWeight: 600 }}>{leave.leave_name}</TableCell>
                           <TableCell sx={{ fontSize: 13 }}>
@@ -321,6 +327,21 @@ const Leaves = () => {
                             {leave.reason}
                           </TableCell>
                           <TableCell>{getStatusChip(leave.status)}</TableCell>
+                          <TableCell sx={{ fontSize: 13 }}>
+                            {leave.approved_by_name ? (
+                              <Box>
+                                <Box sx={{ fontWeight: 600, color: colors.navy }}>{leave.approved_by_name}</Box>
+                                <Box sx={{ fontSize: 11, color: 'text.secondary' }}>({leave.approved_by_role})</Box>
+                                {leave.rejection_reason && leave.status === 'Rejected' && (
+                                  <Box sx={{ fontSize: 11, color: colors.danger, mt: 0.5, fontStyle: 'italic', maxWidth: 200, whiteSpace: 'normal' }}>
+                                    Reason: {leave.rejection_reason}
+                                  </Box>
+                                )}
+                              </Box>
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -329,7 +350,7 @@ const Leaves = () => {
 
                 {/* Mobile Card view */}
                 <Box sx={{ display: { xs: 'block', sm: 'none' }, flexGrow: 1 }}>
-                  {leaves.map((leave) => (
+                  {recentLeaves.map((leave) => (
                     <Paper
                       key={leave.id}
                       elevation={0}
@@ -363,8 +384,37 @@ const Leaves = () => {
                           {leave.reason}
                         </Typography>
                       </Stack>
+                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${colors.line}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Action By: {leave.approved_by_name ? `${leave.approved_by_name} (${leave.approved_by_role})` : '—'}
+                        </Typography>
+                        {leave.rejection_reason && leave.status === 'Rejected' && (
+                          <Typography variant="caption" color="error" sx={{ fontStyle: 'italic' }}>
+                            Rejection Reason: {leave.rejection_reason}
+                          </Typography>
+                        )}
+                      </Box>
                     </Paper>
                   ))}
+                </Box>
+
+                {/* View All Button */}
+                <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    variant="text"
+                    color="primary"
+                    onClick={() => navigate('/leaves/history')}
+                    sx={{
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      color: colors.navy,
+                      '&:hover': {
+                        bgcolor: colors.navySoft
+                      }
+                    }}
+                  >
+                    View All Applications
+                  </Button>
                 </Box>
               </>
             ) : (

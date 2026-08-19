@@ -505,6 +505,7 @@ CREATE TABLE leave_types (
 
     leave_name VARCHAR(100) NOT NULL UNIQUE,
     description VARCHAR(255),
+    max_days INT NOT NULL DEFAULT 15,
 
     status TINYINT(1) DEFAULT 1,
 
@@ -515,11 +516,11 @@ CREATE TABLE leave_types (
     updated_by INT DEFAULT NULL
 );
 INSERT INTO leave_types
-(leave_name, description)
+(leave_name, description, max_days)
 VALUES
-('Casual Leave', 'Leave for personal or casual reasons'),
-('Sick Leave', 'Leave due to illness or medical reasons'),
-('Paid Leave', 'Paid annual leave');
+('Casual Leave', 'Leave for personal or casual reasons', 12),
+('Sick Leave', 'Leave due to illness or medical reasons', 15),
+('Paid Leave', 'Paid annual leave', 20);
 SELECT * FROM leave_types;
 
 
@@ -700,10 +701,15 @@ BEGIN
         l.reason,
         l.status,
         l.approved_by,
-        l.approved_at,
-        l.created_at
+        DATE_FORMAT(l.approved_at, '%Y-%m-%d %H:%i:%s') AS approved_at,
+        l.created_at,
+        emp_app.name AS approved_by_name,
+        r_app.role_name AS approved_by_role,
+        l.rejection_reason
     FROM leaves l
     INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+    LEFT JOIN employees emp_app ON l.approved_by = emp_app.id
+    LEFT JOIN roles r_app ON emp_app.role_id = r_app.id
     WHERE l.employee_id = p_employee_id
     ORDER BY l.created_at DESC;
 END $$
@@ -844,11 +850,18 @@ BEGIN
             l.total_days,
             l.reason,
             l.status,
-            l.created_at
+            l.approved_by,
+            DATE_FORMAT(l.approved_at, '%Y-%m-%d %H:%i:%s') AS approved_at,
+            l.created_at,
+            emp_app.name AS approved_by_name,
+            r_app.role_name AS approved_by_role,
+            l.rejection_reason
         FROM leaves l
         INNER JOIN employees e ON l.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id
         INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        LEFT JOIN employees emp_app ON l.approved_by = emp_app.id
+        LEFT JOIN roles r_app ON emp_app.role_id = r_app.id
         WHERE e.department_id = p_department_id
         ORDER BY l.created_at DESC;
     ELSE
@@ -864,11 +877,18 @@ BEGIN
             l.total_days,
             l.reason,
             l.status,
-            l.created_at
+            l.approved_by,
+            DATE_FORMAT(l.approved_at, '%Y-%m-%d %H:%i:%s') AS approved_at,
+            l.created_at,
+            emp_app.name AS approved_by_name,
+            r_app.role_name AS approved_by_role,
+            l.rejection_reason
         FROM leaves l
         INNER JOIN employees e ON l.employee_id = e.id
         LEFT JOIN departments d ON e.department_id = d.id
         INNER JOIN leave_types lt ON l.leave_type_id = lt.id
+        LEFT JOIN employees emp_app ON l.approved_by = emp_app.id
+        LEFT JOIN roles r_app ON emp_app.role_id = r_app.id
         ORDER BY l.created_at DESC;
     END IF;
 END $$

@@ -10,6 +10,7 @@ import ChangePassword from '../pages/profile/ChangePassword';
 import Attendance from '../pages/attendance/Attendance';
 import AttendanceHistory from '../pages/attendance/AttendanceHistory';
 import Leaves from '../pages/leaves/Leaves';
+import LeaveHistory from '../pages/leaves/LeaveHistory';
 
 const withLayout = (page) => (
   <ProtectedRoute>
@@ -26,6 +27,7 @@ const AppRoutes = () => (
     <Route path="/attendance" element={withLayout(<Attendance />)} />
     <Route path="/attendance/history" element={withLayout(<AttendanceHistory />)} />
     <Route path="/leaves" element={withLayout(<Leaves />)} />
+    <Route path="/leaves/history" element={withLayout(<LeaveHistory />)} />
     <Route path="/profile" element={withLayout(<MyProfile />)} />
     <Route path="/profile/edit" element={withLayout(<EditProfile />)} />
     <Route path="/change-password" element={withLayout(<ChangePassword />)} />
