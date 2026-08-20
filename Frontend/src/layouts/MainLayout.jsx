@@ -9,6 +9,7 @@ const MainLayout = ({ children }) => (
       sx={{
         flexGrow: 1,
         width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+        minWidth: 0,
         minHeight: '100vh',
         bgcolor: 'background.default',
       }}

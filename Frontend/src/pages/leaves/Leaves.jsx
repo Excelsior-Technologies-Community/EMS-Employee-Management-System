@@ -134,7 +134,13 @@ const Leaves = () => {
   const activeLeaveTypes = leaveTypes.filter(t => t.status === 1);
 
   return (
-    <Box sx={{ pb: 6 }}>
+    <Box 
+      sx={{ 
+        width: '100%', 
+        p: { xs: 2, sm: 3 }, 
+        pb: 6 
+      }}
+    >
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="overline" color="secondary.dark" sx={{ display: 'flex', alignItems: 'center', gap: 0.75, fontWeight: 700 }}>
@@ -176,14 +182,15 @@ const Leaves = () => {
       </Grid>
 
       {/* Form and History */}
-      <Grid container spacing={{ xs: 3, md: 4 }}>
+      <Grid container spacing={{ xs: 2, md: 3 }}>
         {/* Left Column: Apply Form */}
         <Grid size={{ xs: 12, md: 6 }}>
           <Card
             sx={{
               p: { xs: 2, sm: 3.5 },
               boxShadow: '0 8px 32px rgba(38, 51, 92, 0.03)',
-              border: `1px solid ${colors.line}`
+              border: `1px solid ${colors.line}`,
+              width: '100%'
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: colors.navy, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -205,6 +212,7 @@ const Leaves = () => {
                 control={control}
                 label="Leave Category"
                 select
+                fullWidth
                 rules={{ required: 'Please select a leave category' }}
               >
                 {activeLeaveTypes.map((type) => (
@@ -221,6 +229,7 @@ const Leaves = () => {
                     control={control}
                     label="Start Date"
                     type="date"
+                    fullWidth
                     InputLabelProps={{ shrink: true }}
                     rules={{ required: 'Start date is required' }}
                   />
@@ -231,6 +240,7 @@ const Leaves = () => {
                     control={control}
                     label="End Date"
                     type="date"
+                    fullWidth
                     InputLabelProps={{ shrink: true }}
                     rules={{ required: 'End date is required' }}
                   />
@@ -243,6 +253,7 @@ const Leaves = () => {
                 label="Reason for Leave"
                 multiline
                 rows={3}
+                fullWidth
                 rules={{ required: 'Please specify the reason' }}
               />
 
@@ -277,7 +288,8 @@ const Leaves = () => {
               display: 'flex',
               flexDirection: 'column',
               boxShadow: '0 8px 32px rgba(38, 51, 92, 0.03)',
-              border: `1px solid ${colors.line}`
+              border: `1px solid ${colors.line}`,
+              width: '100%'
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: colors.navy, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -287,12 +299,12 @@ const Leaves = () => {
 
             {safeLeaves.length > 0 ? (
               <>
-                {/* Desktop and Tablet Table view */}
+                {/* Desktop Table view */}
                 <TableContainer 
                   component={Paper} 
                   elevation={0} 
                   sx={{ 
-                    display: { xs: 'none', sm: 'block' },
+                    display: { xs: 'none', md: 'block' },
                     border: `1px solid ${colors.line}`, 
                     borderRadius: 2, 
                     flexGrow: 1, 
@@ -348,8 +360,8 @@ const Leaves = () => {
                   </Table>
                 </TableContainer>
 
-                {/* Mobile Card view */}
-                <Box sx={{ display: { xs: 'block', sm: 'none' }, flexGrow: 1 }}>
+                 {/* Mobile and Tablet Card view */}
+                 <Box sx={{ display: { xs: 'block', md: 'none' }, flexGrow: 1, width: '100%' }}>
                   {recentLeaves.map((leave) => (
                     <Paper
                       key={leave.id}
@@ -360,36 +372,99 @@ const Leaves = () => {
                         border: `1px solid ${colors.line}`,
                         borderRadius: 2.5,
                         bgcolor: 'background.paper',
+                        width: '100%'
                       }}
                     >
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
+                      {/* Category and Status */}
+                      <Stack 
+                        direction={{ xs: 'column', sm: 'row' }} 
+                        justifyContent="space-between" 
+                        alignItems={{ xs: 'flex-start', sm: 'center' }} 
+                        spacing={1.5}
+                        sx={{ mb: 1.5 }}
+                      >
                         <Box>
                           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.navy }}>
                             {leave.leave_name}
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
                             {formatDateStr(leave.start_date)} - {formatDateStr(leave.end_date)}
                           </Typography>
                         </Box>
-                        {getStatusChip(leave.status)}
+                        <Box sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}>
+                          {getStatusChip(leave.status)}
+                        </Box>
                       </Stack>
                       
                       <Divider sx={{ my: 1.25, borderStyle: 'dashed' }} />
                       
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="caption" sx={{ color: colors.navy, fontWeight: 700, bgcolor: colors.navySoft, px: 1.25, py: 0.5, borderRadius: 1.5 }}>
+                      {/* Duration and Reason */}
+                      <Stack 
+                        direction={{ xs: 'column', sm: 'row' }} 
+                        justifyContent="space-between" 
+                        alignItems={{ xs: 'flex-start', sm: 'center' }} 
+                        spacing={1.5}
+                        sx={{ mb: 1.5 }}
+                      >
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: colors.navy, 
+                            fontWeight: 700, 
+                            bgcolor: colors.navySoft, 
+                            px: 1.25, 
+                            py: 0.5, 
+                            borderRadius: 1.5,
+                            display: 'inline-block' 
+                          }}
+                        >
                           {leave.total_days} {leave.total_days === 1 ? 'Day' : 'Days'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: '65%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={leave.reason}>
+                        <Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            maxWidth: { xs: '100%', sm: '65%' },
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                            display: 'block'
+                          }} 
+                          title={leave.reason}
+                        >
                           {leave.reason}
                         </Typography>
                       </Stack>
-                      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${colors.line}`, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+
+                      <Box 
+                        sx={{ 
+                          mt: 1.5, 
+                          pt: 1.5, 
+                          borderTop: `1px solid ${colors.line}`, 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: 0.5 
+                        }}
+                      >
                         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
                           Action By: {leave.approved_by_name ? `${leave.approved_by_name} (${leave.approved_by_role})` : '—'}
                         </Typography>
                         {leave.rejection_reason && leave.status === 'Rejected' && (
-                          <Typography variant="caption" color="error" sx={{ fontStyle: 'italic' }}>
+                          <Typography 
+                            variant="caption" 
+                            color="error" 
+                            sx={{ 
+                              fontStyle: 'italic',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'normal',
+                              wordBreak: 'break-word',
+                              mt: 0.5
+                            }}
+                          >
                             Rejection Reason: {leave.rejection_reason}
                           </Typography>
                         )}
@@ -404,6 +479,7 @@ const Leaves = () => {
                     variant="text"
                     color="primary"
                     onClick={() => navigate('/leaves/history')}
+                    fullWidth
                     sx={{
                       fontWeight: 700,
                       textTransform: 'none',

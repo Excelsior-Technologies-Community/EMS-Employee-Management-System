@@ -204,7 +204,7 @@ const AttendanceHistory = () => {
             component={Paper}
             elevation={0}
             sx={{
-              display: { xs: 'none', sm: 'block' },
+              display: { xs: 'none', md: 'block' },
               border: `1px solid ${colors.line}`,
               borderRadius: 3,
               overflowX: 'auto',
@@ -307,8 +307,8 @@ const AttendanceHistory = () => {
             </Table>
           </TableContainer>
 
-          {/* Mobile Card view */}
-          <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+          {/* Mobile and Tablet Card view */}
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
             {filteredHistory.map((record) => {
               const recordDate = new Date(record.attendance_date).toISOString().split('T')[0];
               const todayStr = new Date().toISOString().split('T')[0];

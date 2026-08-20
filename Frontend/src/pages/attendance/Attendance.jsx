@@ -148,7 +148,7 @@ const Attendance = () => {
             { label: 'Absent', value: monthlySummary.absentDays, tone: { fg: colors.danger, bg: colors.dangerSoft } },
             { label: 'Total Hours', value: `${monthlySummary.totalWorkHours} hrs`, tone: { fg: colors.navy, bg: colors.navySoft } },
           ].map((stat, i) => (
-            <Grid size={{ xs: 6, sm: 2.4 }} key={i}>
+            <Grid size={{ xs: 6, sm: 4, md: 2.4 }} key={i}>
               <Box
                 sx={{
                   p: { xs: 1.5, sm: 2 },

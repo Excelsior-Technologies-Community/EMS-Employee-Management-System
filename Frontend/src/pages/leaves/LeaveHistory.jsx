@@ -105,7 +105,7 @@ const LeaveHistory = () => {
           { label: 'Approved', value: totalApproved, tone: { fg: colors.success, bg: colors.successSoft } },
           { label: 'Rejected / Cancelled', value: totalRejected, tone: { fg: colors.danger, bg: colors.dangerSoft } }
         ].map((stat, idx) => (
-          <Grid item xs={6} sm={3} key={idx}>
+          <Grid item xs={6} sm={6} md={3} key={idx}>
             <Box
               sx={{
                 p: { xs: 1.5, sm: 2 },
@@ -197,7 +197,7 @@ const LeaveHistory = () => {
                 component={Paper} 
                 elevation={0} 
                 sx={{ 
-                  display: { xs: 'none', sm: 'block' },
+                  display: { xs: 'none', md: 'block' },
                   border: `1px solid ${colors.line}`, 
                   borderRadius: 2, 
                   overflowX: 'auto' 
@@ -252,8 +252,8 @@ const LeaveHistory = () => {
                 </Table>
               </TableContainer>
 
-              {/* Mobile Card view */}
-              <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              {/* Mobile and Tablet Card view */}
+              <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                 {filteredLeaves.map((leave) => (
                   <Paper
                     key={leave.id}
