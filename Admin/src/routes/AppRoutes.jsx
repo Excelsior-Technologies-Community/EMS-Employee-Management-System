@@ -13,6 +13,11 @@ import EditProfile from '../pages/profile/EditProfile';
 import ChangePassword from '../pages/profile/ChangePassword';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import LeaveList from '../pages/leaves/LeaveList';
+import TeamList from '../pages/teams/TeamList';
+import TeamForm from '../pages/teams/TeamForm';
+import TeamDetails from '../pages/teams/TeamDetails';
+import MyTeam from '../pages/teams/MyTeam';
+
 const withLayout = (page, roles) => (
   <ProtectedRoute roles={roles}>
     <AdminLayout>{page}</AdminLayout>
@@ -33,6 +38,13 @@ const AppRoutes = () => (
     <Route path="/profile" element={withLayout(<Profile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/profile/edit" element={withLayout(<EditProfile />, ['Admin', 'HR', 'Manager'])} />
     <Route path="/change-password" element={withLayout(<ChangePassword />, ['Admin', 'HR', 'Manager'])} />
+    
+    {/* Teams Routes */}
+    <Route path="/teams" element={withLayout(<TeamList />, ['Admin', 'HR'])} />
+    <Route path="/teams/new" element={withLayout(<TeamForm />, ['Admin', 'HR'])} />
+    <Route path="/teams/:id/edit" element={withLayout(<TeamForm />, ['Admin', 'HR'])} />
+    <Route path="/teams/:id" element={withLayout(<TeamDetails />, ['Admin', 'HR', 'Manager'])} />
+    <Route path="/my-team" element={withLayout(<MyTeam />, ['Manager'])} />
 
     {/* Admin only */}
     <Route path="/departments" element={withLayout(<DepartmentList />, ['Admin'])} />

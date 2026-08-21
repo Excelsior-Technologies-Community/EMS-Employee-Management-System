@@ -10,6 +10,8 @@ import roleRoutes from "./routes/roleRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import leaveTypeRoutes from "./routes/leaveTypeRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -86,6 +88,8 @@ app.use("/api/roles", roleRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/leave-types", leaveTypeRoutes);
 app.use("/api/leaves", leaveRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/teams", teamRoutes);
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server started at http://localhost:${PORT} (listening on all interfaces: 0.0.0.0)`);
 });

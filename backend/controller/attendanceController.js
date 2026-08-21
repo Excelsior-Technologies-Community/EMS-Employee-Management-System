@@ -373,27 +373,62 @@ export const getMonthlyReport = async (req, res) => {
             });
         }
 
-        // Calculate working days
+        // Fetch employee joining/created date
+        const [empRows] = await db.query(
+            "SELECT DATE(created_at) AS joining_date FROM employees WHERE id = ?",
+            [employee_id]
+        );
+        let joiningDate = null;
+        if (empRows.length > 0 && empRows[0].joining_date) {
+            joiningDate = new Date(empRows[0].joining_date);
+        }
+
+        // Calculate working days based on joining date
         const today = new Date();
         const currentMonth = today.getMonth() + 1;
         const currentYear = today.getFullYear();
 
-        let workingDays = 0;
-        if (year < currentYear || (year === currentYear && month < currentMonth)) {
-            // Past month: count all weekdays
-            workingDays = countWeekdays(month, year);
-        } else if (year === currentYear && month === currentMonth) {
-            // Current month: count weekdays up to today
-            workingDays = countWeekdays(month, year, today.getDate());
-        } else {
-            // Future month
-            workingDays = 0;
+        const monthStart = new Date(year, month - 1, 1);
+        let endDate = new Date(year, month, 0); // last day of month
+        if (year === currentYear && month === currentMonth) {
+            endDate = today;
         }
+
+        let effectiveStart = monthStart;
+        if (joiningDate && joiningDate > monthStart) {
+            effectiveStart = joiningDate;
+        }
+
+        let workingDays = 0;
+        if (effectiveStart <= endDate) {
+            let current = new Date(effectiveStart);
+            current.setHours(0, 0, 0, 0);
+            const limitDate = new Date(endDate);
+            limitDate.setHours(0, 0, 0, 0);
+
+            while (current <= limitDate) {
+                const dayOfWeek = current.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Monday to Friday
+                    workingDays++;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+        }
+
+        // Format dates as YYYY-MM-DD strings for SQL query
+        const formatDateStr = (date) => {
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        };
+        const startStr = formatDateStr(effectiveStart);
+        const endStr = formatDateStr(endDate);
 
         // Fetch user records
         const [rows] = await db.query(
-            "SELECT attendance_date, check_in, check_out, status, work_hours, remarks FROM attendance WHERE employee_id = ? AND MONTH(attendance_date) = ? AND YEAR(attendance_date) = ? ORDER BY attendance_date ASC",
-            [employee_id, month, year]
+            "SELECT attendance_date, check_in, check_out, status, work_hours, remarks FROM attendance WHERE employee_id = ? AND attendance_date >= ? AND attendance_date <= ? ORDER BY attendance_date ASC",
+            [employee_id, startStr, endStr]
         );
 
         let presentDays = 0;

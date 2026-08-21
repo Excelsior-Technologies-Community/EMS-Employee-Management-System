@@ -8,6 +8,7 @@ import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSetting
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
 import EventNoteRoundedIcon from '@mui/icons-material/EventNoteRounded';
+import GroupWorkRoundedIcon from '@mui/icons-material/GroupWorkRounded';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
@@ -17,12 +18,13 @@ export const DRAWER_WIDTH = 240;
 // Every entry declares which roles can see it — single source of truth for the menu.
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: <DashboardRoundedIcon />, path: '/dashboard', roles: ['Admin', 'HR', 'Manager'] },
+  { label: 'Teams', icon: <GroupWorkRoundedIcon />, path: '/teams', roles: ['Admin', 'HR'] },
+  { label: 'My Team', icon: <GroupWorkRoundedIcon />, path: '/my-team', roles: ['Manager'] },
   { label: 'Employees', icon: <GroupRoundedIcon />, path: '/employees', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Attendance', icon: <CalendarTodayRoundedIcon />, path: '/attendance', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Leaves', icon: <EventNoteRoundedIcon />, path: '/leaves', roles: ['Admin', 'HR', 'Manager'] },
   { label: 'Departments', icon: <ApartmentRoundedIcon />, path: '/departments', roles: ['Admin'] },
   { label: 'Roles', icon: <AdminPanelSettingsRoundedIcon />, path: '/roles', roles: ['Admin'] },
-
 ];
 
 const Sidebar = ({ onNavigate }) => {
