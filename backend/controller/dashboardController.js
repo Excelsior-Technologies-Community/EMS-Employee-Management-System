@@ -77,7 +77,7 @@ export const getHRDashboard = async (req, res) => {
  */
 export const getManagerDashboard = async (req, res) => {
     try {
-        const managerId = req.user.id;
+        const managerId = req.user.id;  
 
         const [resultSets] = await db.query("CALL SP_GetManagerDashboard(?)", [managerId]);
 

@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 import { sendOTPEmail } from '../config/emailService.js';
-import {OAuth2Client} from 'google-auth-library';
-const googleClient  = new OAuth2Client(process.env.GOOGLE_CLIENT_ID, );
+import { OAuth2Client } from 'google-auth-library';
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID,);
 
-// Startup pe JWT_SECRET validate karo
+
 
 if (!process.env.JWT_SECRET) {
     console.error('FATAL: JWT_SECRET is not defined in environment variables. Exiting.');
@@ -21,7 +21,7 @@ export const loginEmployee = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email and Password are required!" });
         }
 
-      
+
         const [rows] = await db.query(
             "CALL SP_GetEmployeeByEmail(?)",
             [email]
@@ -44,11 +44,11 @@ export const loginEmployee = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid Email or Password!" });
         }
 
-       
+
         const token = jwt.sign(
             { id: user.id, role: user.role_name },
             process.env.JWT_SECRET,
-            { expiresIn: '1d' } 
+            { expiresIn: '1d' }
         );
 
         res.status(200).json({
@@ -89,12 +89,12 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email is required!" });
         }
 
-        // Generate a 6-digit numeric OTP
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        // OTP Expiry: 15 minutes
+
         const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
-        // Store OTP in database as reset_token
+
         const [result] = await db.query(
             "CALL SP_SetResetToken(?, ?, ?)",
             [email, otp, expiry]
@@ -105,7 +105,7 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email address not found or account is inactive." });
         }
 
-        // Send OTP email
+
         await sendOTPEmail(email, otp, "Valued Team Member");
 
         res.status(200).json({
@@ -125,7 +125,7 @@ export const verifyOTP = async (req, res) => {
             return res.status(400).json({ success: false, message: "Email and OTP are required!" });
         }
 
-        // Call SP_VerifyOTP Stored Procedure
+
         const [rows] = await db.query(
             "CALL SP_VerifyOTP(?, ?)",
             [email, otp]
@@ -210,7 +210,7 @@ export const loginWithGoogle = async (req, res) => {
             return res.status(500).json({ success: false, message: "Google login is not configured on the server." });
         }
 
-       
+
         const ticket = await googleClient.verifyIdToken({
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
@@ -222,7 +222,7 @@ export const loginWithGoogle = async (req, res) => {
             return res.status(401).json({ success: false, message: "Google email is not verified." });
         }
 
-       
+
         const [rows] = await db.query(
             "CALL SP_GetEmployeeByEmail(?)",
             [payload.email]

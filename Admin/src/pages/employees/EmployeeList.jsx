@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Box, IconButton, Tooltip, Switch, Chip, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
@@ -28,14 +29,26 @@ const EmployeeList = () => {
   const { data: res, loading, refetch } = useFetch(() => employeeService.getAll({ limit: 1000 }), []);
   const employees = res?.data || [];
 
+  const location = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const initialRoleFilter = searchParams.get('role') || 'all';
+
   const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState(initialRoleFilter);
   const [addOpen, setAddOpen] = useState(false);
 
+  useEffect(() => {
+    const roleParam = searchParams.get('role') || 'all';
+    setRoleFilter(roleParam);
+  }, [searchParams]);
+
   const filteredEmployees = useMemo(() => {
-    if (statusFilter === 'all') return employees;
-    const targetStatus = statusFilter === 'active' ? 1 : 0;
-    return employees.filter(emp => emp.status === targetStatus);
-  }, [employees, statusFilter]);
+    return employees.filter(emp => {
+      const matchStatus = statusFilter === 'all' || emp.status === (statusFilter === 'active' ? 1 : 0);
+      const matchRole = roleFilter === 'all' || emp.role_name?.toLowerCase() === roleFilter.toLowerCase();
+      return matchStatus && matchRole;
+    });
+  }, [employees, statusFilter, roleFilter]);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -148,20 +161,39 @@ const EmployeeList = () => {
         searchPlaceholder="Search by name, email, or role..."
         emptyLabel="No employees found."
         toolbarAction={
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="status-filter-label">Filter by Status</InputLabel>
-            <Select
-              labelId="status-filter-label"
-              id="status-filter"
-              value={statusFilter}
-              label="Filter by Status"
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="all">All Statuses</MenuItem>
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-            </Select>
-          </FormControl>
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel id="role-filter-label">Filter by Role</InputLabel>
+              <Select
+                labelId="role-filter-label"
+                id="role-filter"
+                value={roleFilter}
+                label="Filter by Role"
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Roles</MenuItem>
+                <MenuItem value="Admin">Admin</MenuItem>
+                <MenuItem value="HR">HR</MenuItem>
+                <MenuItem value="Manager">Manager</MenuItem>
+                <MenuItem value="Employee">Employee</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel id="status-filter-label">Filter by Status</InputLabel>
+              <Select
+                labelId="status-filter-label"
+                id="status-filter"
+                value={statusFilter}
+                label="Filter by Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
         }
       />
 

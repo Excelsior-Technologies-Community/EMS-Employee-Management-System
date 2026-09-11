@@ -3,11 +3,12 @@
 CREATE DATABASE IF NOT EXISTS EMS;
 USE EMS;
 
+
 -- =========================================================================
 -- 2. ROLES
 -- =========================================================================
 
--- Table
+
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(50) NOT NULL UNIQUE,
@@ -374,6 +375,18 @@ CREATE TABLE office_location (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Stored Procedures
+DELIMITER $$
+
+CREATE PROCEDURE SP_GetActiveOfficeLocations()
+BEGIN
+    SELECT id, office_name, latitude, longitude, radius, status, created_at
+    FROM office_location
+    WHERE status = 1;
+END $$
+
+DELIMITER ;
+
 -- =========================================================================
 -- 7. ATTENDANCE
 -- =========================================================================
@@ -413,9 +426,12 @@ CREATE PROCEDURE SP_CheckIn(
     IN p_employee_id INT,
     IN p_latitude DECIMAL(10,8),
     IN p_longitude DECIMAL(11,8),
-    IN p_accuracy DECIMAL(10,2)
+    IN p_accuracy DECIMAL(10,2),
+    IN p_remarks VARCHAR(255)
 )
 BEGIN
+    DECLARE v_status ENUM('Present', 'Absent', 'Late', 'Half Day') DEFAULT 'Present';
+
     IF EXISTS (
         SELECT 1
         FROM attendance
@@ -425,13 +441,19 @@ BEGIN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Already Checked In';
     ELSE
+        IF TIME(NOW()) > '10:00:00' THEN
+            SET v_status = 'Late';
+        END IF;
+
         INSERT INTO attendance (
             employee_id,
             attendance_date,
             check_in,
             check_in_latitude,
             check_in_longitude,
-            check_in_accuracy
+            check_in_accuracy,
+            remarks,
+            status
         )
         VALUES (
             p_employee_id,
@@ -439,7 +461,9 @@ BEGIN
             NOW(),
             p_latitude,
             p_longitude,
-            p_accuracy
+            p_accuracy,
+            p_remarks,
+            v_status
         );
     END IF;
 END $$
@@ -448,17 +472,204 @@ CREATE PROCEDURE SP_CheckOut(
     IN p_employee_id INT,
     IN p_latitude DECIMAL(10,8),
     IN p_longitude DECIMAL(11,8),
-    IN p_accuracy DECIMAL(10,2)
+    IN p_accuracy DECIMAL(10,2),
+    IN p_remarks VARCHAR(255)
 )
 BEGIN
-    UPDATE attendance
-    SET check_out = NOW(),
-        check_out_latitude = p_latitude,
-        check_out_longitude = p_longitude,
-        check_out_accuracy = p_accuracy,
-        work_hours = ROUND(TIMESTAMPDIFF(MINUTE, check_in, NOW()) / 60, 2)
+    DECLARE v_check_in DATETIME;
+    DECLARE v_check_out DATETIME;
+    DECLARE v_work_hours DECIMAL(5,2);
+    DECLARE v_status ENUM('Present', 'Absent', 'Late', 'Half Day');
+    DECLARE v_current_remarks VARCHAR(255);
+
+    SELECT check_in, check_out, remarks
+    INTO v_check_in, v_check_out, v_current_remarks
+    FROM attendance
+    WHERE employee_id = p_employee_id
+      AND attendance_date = CURDATE()
+    LIMIT 1;
+
+    IF v_check_in IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Check-out denied. You have not checked in today.';
+    ELSEIF v_check_out IS NOT NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Already Checked Out today.';
+    ELSE
+        SET v_work_hours = ROUND(TIMESTAMPDIFF(MINUTE, v_check_in, NOW()) / 60, 2);
+
+        IF v_work_hours < 4 THEN
+            SET v_status = 'Half Day';
+        ELSEIF TIME(v_check_in) > '10:00:00' THEN
+            SET v_status = 'Late';
+        ELSE
+            SET v_status = 'Present';
+        END IF;
+
+        UPDATE attendance
+        SET check_out = NOW(),
+            check_out_latitude = p_latitude,
+            check_out_longitude = p_longitude,
+            check_out_accuracy = p_accuracy,
+            work_hours = v_work_hours,
+            status = v_status,
+            remarks = CASE
+                WHEN p_remarks IS NOT NULL AND p_remarks != '' THEN
+                    IF(v_current_remarks IS NULL OR v_current_remarks = '', p_remarks, CONCAT(v_current_remarks, ' | Check-out: ', p_remarks))
+                ELSE remarks
+            END
+        WHERE employee_id = p_employee_id
+          AND attendance_date = CURDATE();
+    END IF;
+END $$
+
+CREATE PROCEDURE SP_GetTodayAttendanceStatus(
+    IN p_employee_id INT
+)
+BEGIN
+    SELECT *
+    FROM attendance
     WHERE employee_id = p_employee_id
       AND attendance_date = CURDATE();
+END $$
+
+CREATE PROCEDURE SP_GetMyAttendanceHistory(
+    IN p_employee_id INT,
+    IN p_from_date DATE,
+    IN p_to_date DATE
+)
+BEGIN
+    SELECT *
+    FROM attendance
+    WHERE employee_id = p_employee_id
+      AND (p_from_date IS NULL OR attendance_date >= p_from_date)
+      AND (p_to_date IS NULL OR attendance_date <= p_to_date)
+    ORDER BY attendance_date DESC
+    LIMIT 100;
+END $$
+
+CREATE PROCEDURE SP_GetMonthlyAttendanceReport(
+    IN p_employee_id INT,
+    IN p_start_date DATE,
+    IN p_end_date DATE
+)
+BEGIN
+    SELECT 
+        attendance_date,
+        check_in,
+        check_out,
+        status,
+        work_hours,
+        remarks
+    FROM attendance
+    WHERE employee_id = p_employee_id
+      AND attendance_date >= p_start_date
+      AND attendance_date <= p_end_date
+    ORDER BY attendance_date ASC;
+END $$
+
+CREATE PROCEDURE SP_GetMonthlyAttendanceReportAll(
+    IN p_month INT,
+    IN p_year INT,
+    IN p_department_id INT
+)
+BEGIN
+    SELECT 
+        e.name,
+        e.email,
+        d.department_name,
+        SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS present_days,
+        SUM(CASE WHEN a.status = 'Late' THEN 1 ELSE 0 END) AS late_days,
+        SUM(CASE WHEN a.status = 'Half Day' THEN 1 ELSE 0 END) AS half_days,
+        COUNT(a.id) AS marked_days,
+        COALESCE(SUM(a.work_hours), 0) AS total_work_hours
+    FROM employees e
+    LEFT JOIN departments d ON e.department_id = d.id
+    LEFT JOIN attendance a ON e.id = a.employee_id 
+                          AND MONTH(a.attendance_date) = p_month 
+                          AND YEAR(a.attendance_date) = p_year
+    WHERE e.status = 1
+      AND (p_department_id IS NULL OR e.department_id = p_department_id)
+    GROUP BY e.id, e.name, e.email, d.department_name
+    ORDER BY e.name ASC;
+END $$
+
+CREATE PROCEDURE SP_GetAllAttendance(
+    IN p_date DATE,
+    IN p_department_id INT,
+    IN p_employee_id INT
+)
+BEGIN
+    SELECT 
+        a.id,
+        a.employee_id,
+        e.name AS employee_name,
+        d.department_name,
+        a.attendance_date,
+        a.check_in,
+        a.check_out,
+        a.work_hours,
+        a.status,
+        a.remarks
+    FROM attendance a
+    JOIN employees e ON a.employee_id = e.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    WHERE (p_date IS NULL OR a.attendance_date = p_date)
+      AND (p_department_id IS NULL OR e.department_id = p_department_id)
+      AND (p_employee_id IS NULL OR a.employee_id = p_employee_id)
+    ORDER BY a.attendance_date DESC, e.name ASC;
+END $$
+
+CREATE PROCEDURE SP_SaveAttendanceManual(
+    IN p_employee_id INT,
+    IN p_attendance_date DATE,
+    IN p_check_in DATETIME,
+    IN p_check_out DATETIME,
+    IN p_status ENUM('Present', 'Absent', 'Late', 'Half Day'),
+    IN p_remarks VARCHAR(255),
+    IN p_work_hours DECIMAL(5,2)
+)
+BEGIN
+    DECLARE v_id INT;
+
+    SELECT id INTO v_id
+    FROM attendance
+    WHERE employee_id = p_employee_id
+      AND attendance_date = p_attendance_date
+    LIMIT 1;
+
+    IF v_id IS NOT NULL THEN
+        UPDATE attendance
+        SET check_in = p_check_in,
+            check_out = p_check_out,
+            status = p_status,
+            remarks = p_remarks,
+            work_hours = p_work_hours
+        WHERE id = v_id;
+
+        SELECT 'UPDATED' AS action, v_id AS id;
+    ELSE
+        INSERT INTO attendance (
+            employee_id,
+            attendance_date,
+            check_in,
+            check_out,
+            status,
+            remarks,
+            work_hours
+        )
+        VALUES (
+            p_employee_id,
+            p_attendance_date,
+            p_check_in,
+            p_check_out,
+            p_status,
+            p_remarks,
+            p_work_hours
+        );
+
+        SELECT 'INSERTED' AS action, LAST_INSERT_ID() AS id;
+    END IF;
 END $$
 
 DELIMITER ;
@@ -467,7 +678,7 @@ DELIMITER ;
 -- 8. LEAVE TYPES
 -- =========================================================================
 
--- Table
+
 CREATE TABLE leave_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
     leave_name VARCHAR(100) NOT NULL UNIQUE,
@@ -480,7 +691,7 @@ CREATE TABLE leave_types (
     updated_by INT DEFAULT NULL
 );
 
--- Stored Procedures
+
 DELIMITER $$
 
 CREATE PROCEDURE SP_AddLeaveType(
@@ -542,7 +753,7 @@ DELIMITER ;
 -- 9. LEAVES
 -- =========================================================================
 
--- Table
+
 CREATE TABLE leaves (
     id INT AUTO_INCREMENT PRIMARY KEY,
     employee_id INT NOT NULL,
@@ -576,7 +787,7 @@ CREATE TABLE leaves (
         ON DELETE SET NULL
 );
 
--- Stored Procedures
+
 DELIMITER $$
 
 CREATE PROCEDURE SP_ApplyLeave(
@@ -1101,7 +1312,7 @@ BEGIN
     -- Inactive Employees
     SELECT COUNT(*) INTO v_inactive_employees FROM employees WHERE status = 0;
 
-    -- Today's Present Employees (active Employees only with status 'Present', 'Late', 'Half Day')
+  
     SELECT COUNT(DISTINCT e.id) INTO v_today_present
     FROM employees e
     JOIN roles r ON e.role_id = r.id
@@ -1705,9 +1916,9 @@ VALUES
 -- Leave Types Seed
 INSERT INTO leave_types (leave_name, description, max_days)
 VALUES
-('Casual Leave', 'Leave for personal or casual reasons', 12),
-('Sick Leave', 'Leave due to illness or medical reasons', 15),
-('Paid Leave', 'Paid annual leave', 20);
+('Casual Leave', 'Leave for personal or casual reasons', 3),
+('Sick Leave', 'Leave due to illness or medical reasons', 5),
+('Paid Leave', 'Paid annual leave', 2);
 
 -- Populate Leave Balances for Pre-existing Employees
 INSERT INTO employee_leave_balances (employee_id, leave_type_id, allocated_days, used_days, remaining_days)
@@ -1722,8 +1933,9 @@ WHERE lt.status = 1
       WHERE elb.employee_id = e.id AND elb.leave_type_id = lt.id
   );
 
--- =========================================================================
--- 18. FINAL VERIFICATION SELECT STATEMENTS
--- =========================================================================
 
-SELECT * FROM leave_types;
+
+SELECT * FROM roles;
+
+
+
